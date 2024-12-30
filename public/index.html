@@ -1,0 +1,104 @@
+<!DOCTYPE html>  
+<html lang="zh">  
+<head>  
+    <meta charset="UTF-8">  
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">  
+    <title>股票分时走势</title>  
+    <script src="/socket.io/socket.io.js"></script>  
+    <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>  
+    <style>  
+        body { font-family: Arial, sans-serif; }  
+        .category { margin: 20px 0; }  
+        .stock { margin: 10px 0; border: 1px solid #ccc; padding: 10px; }  
+        .stock h2 { margin: 0; }  
+        .chart { width: 100%; height: 400px; }  
+    </style>  
+</head>  
+<body>  
+    <h1>股票分时走势</h1>  
+    <div id="stock-container"></div>  
+
+    <script>  
+        const socket = io();  
+        const stockDataMap = {};  
+
+        socket.on('stock_data', function(data) {  
+            const container = document.getElementById('stock-container');  
+            let categoryDiv = document.getElementById(data.category);  
+
+            if (!categoryDiv) {  
+                categoryDiv = document.createElement('div');  
+                categoryDiv.id = data.category;  
+                categoryDiv.className = 'category';  
+                categoryDiv.innerHTML = `<h2>${data.category}</h2>`;  
+                container.appendChild(categoryDiv);  
+            }  
+
+            let stockDiv = document.getElementById(data.stock);  
+            if (!stockDiv) {  
+                stockDiv = document.createElement('div');  
+                stockDiv.id = data.stock;  
+                stockDiv.className = 'stock';  
+                stockDiv.innerHTML = `<h3>${data.stock}</h3>`;  
+                stockDiv.innerHTML += `<div class="chart" id="${data.stock}-chart"></div>`;  
+                categoryDiv.appendChild(stockDiv);  
+            }  
+
+            // 更新历史数据  
+            stockDataMap[data.stock] = stockDataMap[data.stock] || { timestamps: [], prices: [] };  
+            stockDataMap[data.stock].timestamps = data.history.map(entry => entry.time);  
+            stockDataMap[data.stock].prices = data.history.map(entry => entry.price);  
+
+            // 绘制 ECharts  
+            const chartDom = document.getElementById(`${data.stock}-chart`);  
+            const myChart = echarts.init(chartDom);  
+
+            // 设置 ECharts 配置项  
+            const option = {  
+                title: {  
+                    text: `${data.stock} 分时走势`,  
+                },  
+                tooltip: {  
+                    trigger: 'axis',  
+                },  
+                xAxis: {  
+                    type: 'category',  
+                    data: stockDataMap[data.stock].timestamps,  
+                    name: '时间 (分钟)', 
+                    min:0,
+                    max:stockDataMap[data.stock].timestamps[0]+60 
+                },  
+                yAxis: {  
+                    type: 'value',  
+                    name: '价格 (USD)', 
+                    startValue:stockDataMap[data.stock].prices[0], 
+                    max:stockDataMap[data.stock].prices[0]*1.1,
+                    min:stockDataMap[data.stock].prices[0]*0.9,
+                    
+                },  
+                series: [{  
+                    name: '价格',  
+                    type: 'line',  
+                    data: stockDataMap[data.stock].prices,  
+                    smooth: true, // 平滑曲线  
+                    itemStyle: {  
+                        color: 'rgba(75, 192, 192, 1)',  
+                    },
+                    markLine: {
+                        symbol:'none',
+                        animation: false,
+                        data: [
+                            {
+                                yAxis: stockDataMap[data.stock].prices[0] // 这里指定垂直线的位置，'C' 是 xAxis 的一个数据点
+                            }
+                        ],
+                    },  
+                }],  
+            };  
+
+            // 使用刚指定的配置项和数据显示图表  
+            myChart.setOption(option);  
+        });  
+    </script>  
+</body>  
+</html>

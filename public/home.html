@@ -1,0 +1,317 @@
+<!DOCTYPE html>  
+<html lang="zh">  
+<head>  
+    <meta charset="UTF-8">  
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">  
+    <title>股票分时走势</title>  
+    <script src="/socket.io/socket.io.js"></script>  
+    <script src="static/js/echarts.min.js"></script>  
+    <style>  
+        html,body { font-family: Arial, sans-serif; width: 100%;height: 100%;margin: 0;padding: 0;}  
+        *{
+            margin: 0;padding: 0
+        }
+        .chart { width: 100%; height: 100px; }
+        .stock{
+        position: relative;}
+    </style>  
+</head>  
+<body> 
+    <div style="width: 100%;height: 100%;background-color: rgb(44, 79, 109);display: inline-flex">
+        <div style="width: 5%;min-width: 80px;;height: 100%;background-color: antiquewhite;font-size: 22px;">
+            <div style="height: 22px;line-height: 22px;background-color: rgb(143, 79, 202);padding: 8px 4px;text-align: center;color: aliceblue;">首页</div>
+            <div style="height: 22px;line-height: 22px;background-color: rgb(137, 117, 156);padding: 8px 4px;text-align: center;color: aliceblue;">其他</div>
+        </div>
+        <div style="height: 100%;width: 100%;background-color: rgb(107, 178, 178);display: block;">
+            <div style="margin: 1%;background-color: rgb(175, 188, 161);height: 98%;">
+                <div style="display: flex;height: 10%;">
+                    <div style="width: 25%;background-color: rgb(122, 144, 144);">情绪</div>
+                    <div style="width: 25%;background-color: rgb(79, 170, 170);">连板</div>
+                    <div style="width: 25%;background-color: rgb(81, 196, 171);">板块</div>
+                    <div style="width: 25%;background-color: rgb(96, 159, 76);">资金</div>
+                    <div style="width: 25%;background-color: rgb(77, 127, 168);">综合分数</div>
+                    <div></div>
+                    <div></div>
+                    <div></div>
+                </div> 
+            </br>
+                <div style="display: flex;">
+                    <div id="b1"  style="width: 25%;background-color: rgb(122, 144, 144);">1板</div>
+                    <div id="b2"  style="width: 25%;background-color: rgb(79, 170, 170);">2板</div>
+                    <div id="b3"  style="width: 25%;background-color: rgb(81, 196, 171);">3板</div>
+                    <div id="b4"  style="width: 25%;background-color: rgb(96, 159, 76);">4板</div>
+                    <div id="b5" style="width: 25%;background-color: rgb(77, 127, 168);">5板</div>
+
+                </div>  
+            <!-- </br>
+                <div style="display: flex;height: 20%;">
+                    <div style="width: 25%;background-color: rgb(122, 144, 144);">情绪</div>
+                    <div style="width: 25%;background-color: rgb(79, 170, 170);">连板</div>
+                    <div style="width: 25%;background-color: rgb(81, 196, 171);">板块</div>
+                    <div style="width: 25%;background-color: rgb(96, 159, 76);">资金</div>
+                    <div style="width: 25%;background-color: rgb(77, 127, 168);">综合分数</div>
+
+                    <div></div>
+                    <div></div>
+                    <div style="position: absolute;top:0"></div>
+                </div>   -->
+            </div>
+        </div>
+    </div> 
+    <script>  
+        const socket = io();  
+        const stockDataMap = {};  
+        const ban=[]
+        socket.emit('msg',{'ban':0})
+        // socket.on('ban', function(data) {
+        //     ban=data
+        //     console.log(ban)
+        // })
+        socket.on('msg', (data)=> {
+            console.log('接受到服务器消息：',data)
+            if('ban' in data){
+                console.log(data['ban'])
+                deal(data['ban'])
+            }
+        })
+        function deal(data){
+            for(d in data){
+                if(data[d].bans>5)
+                    container = document.getElementById('b5');
+                else
+                    container = document.getElementById(`b${data[d].bans}`);
+                let stockDiv = document.getElementById(data[d].id);
+                if (!stockDiv) {  
+                    stockDiv = document.createElement('div');  
+                    stockDiv.id = data[d].id;  
+                    stockDiv.className = 'stock';  
+                    stockDiv.innerHTML = `<h6 ondblclick="dblClickFn('${data[d].id}')" style="cursor: pointer;z-index:999;position: absolute;left:50%;color:#eee">${data[d].name}</h6>`;  
+                    stockDiv.innerHTML += `<div class="chart" id="${data[d].id}-chart"></div>`;  
+                    container.appendChild(stockDiv);  
+                }
+            }
+        }
+        function dblClickFn(e){
+            socket.emit('msg',{'buy':e})
+            alert('购买了',e)
+        }
+        socket.on('st_data', function(data) {
+            // console.log(data.stock.slice(0,2))
+            //const container = document.getElementById('b4');
+            if(data.stock=="002137.SZ")
+                console.log(data)
+        
+             // 绘制 ECharts  
+            const chartDom = document.getElementById(`${data.stock}-chart`);  
+            const myChart = echarts.init(chartDom);   
+            // 设置 ECharts 配置项  
+            const option = {
+                // title: {  
+                //     text: `${data.stock} 分时走势`,  
+                // },  
+                tooltip: {  
+                    trigger: 'axis',  
+                },  
+                xAxis: {  
+                    type: 'category',  
+                    data: data.time,  
+                    name: '时间 (分钟)',  
+                    axisLine:{
+                        lineStyle:{
+                            color:'#00f',
+                            width:1
+                        }
+                    },
+                    splitLine:{
+                        show:false
+                    },
+                    axisLabel:{fontSize : 12,color:"#00f"},
+                    
+                    min:-2,
+                    max:data.time.length<60?70:(data.time.length<120?130:(data.time.length<180?200:245))
+                },  
+                yAxis: {  
+                    type: 'value',  
+                    name: '价格 (USD)', 
+                    axisLabel:{fontSize : 12,color:"#00f"},
+                    splitLine:{//背景网格线
+                        show:false,
+                        lineStyle: {
+                            type: 'dashed', // 设置为虚线
+                            color: '#ddd' // 网格线颜色
+                        }
+                    },
+                    
+                    startValue:data.preClose,
+                    max:data.stock.slice(0,2)=='30'?data.preClose*1.21:data.preClose*1.11,
+                    min:data.preClose*0.89
+                },  
+                series: [{  
+                    name: '价格',  
+                    type: 'line',  
+                    data: data.price,  
+                    smooth: true, // 平滑曲线  
+                    symbol:'none',
+                    itemStyle: {  
+                        color: 'rgba(44, 79, 109, 1)',
+                    },
+                    lineStyle:{
+                            color:'#000',
+                            width:1
+                    },
+                    markLine: {
+                        symbol:'none',
+                        animation: false,
+                        data: [
+                            {
+                                yAxis: data.preClose,// 这里指定垂直线的位置，'C' 是 xAxis 的一个数据点
+                                lineStyle:{
+                                    type :'solid'
+                                },
+                            },
+                            {
+                                yAxis:data.stock.slice(0,2)=='30'?data.preClose*1.2:data.preClose*1.1,
+                                lineStyle:{
+                                    color:'#a3cf62',
+                                    width:1
+                                },
+                            },
+                            {
+                                yAxis:data.preClose*0.9,
+                                lineStyle:{
+                                    type :'solid',
+                                    color:'#0c212b',
+                                    width:1
+                                },
+                            }
+                        ],
+                    },    
+                }],
+                grid:{
+                    top:0,
+                    bottom:0,
+                    right:0,
+                    left:0,
+                    borderWidth:3
+                    // width:'350px',
+                    // height:'80px'
+                }
+
+            };  
+
+            // 使用刚指定的配置项和数据显示图表  
+            myChart.setOption(option);   
+        })
+        socket.on('stock_data', function(data) {
+            const container = document.getElementById('b5');  
+            let categoryDiv = document.getElementById(data.category);  
+
+            if (!categoryDiv) {  
+                categoryDiv = document.createElement('div');  
+                categoryDiv.id = data.category;  
+                categoryDiv.className = 'category';  
+                categoryDiv.innerHTML = `<h6>${data.category}</h6>`;
+                container.appendChild(categoryDiv);  
+            }  
+
+            let stockDiv = document.getElementById(data.stock);  
+            if (!stockDiv) {  
+                stockDiv = document.createElement('div');  
+                stockDiv.id = data.stock;  
+                stockDiv.className = 'stock';  
+                stockDiv.innerHTML = `<h6 style="position: absolute;left:50%;color:#eee">${data.stock}</h6>`;  
+                stockDiv.innerHTML += `<div class="chart" id="${data.stock}-chart"></div>`;  
+                categoryDiv.appendChild(stockDiv);  
+            }  
+
+            // 更新历史数据  
+            stockDataMap[data.stock] = stockDataMap[data.stock] || { timestamps: [], prices: [] };  
+            stockDataMap[data.stock].timestamps = data.history.map(entry => entry.time);  
+            stockDataMap[data.stock].prices = data.history.map(entry => entry.price);  
+
+            // 绘制 ECharts  
+            const chartDom = document.getElementById(`${data.stock}-chart`);  
+            const myChart = echarts.init(chartDom);  
+
+            // 设置 ECharts 配置项  
+            const option = {
+                // title: {  
+                //     text: `${data.stock} 分时走势`,  
+                // },  
+                tooltip: {  
+                    trigger: 'axis',  
+                },  
+                xAxis: {  
+                    type: 'category',  
+                    data: stockDataMap[data.stock].timestamps,  
+                    name: '时间 (分钟)',  
+                    axisLine:{
+                        lineStyle:{
+                            color:'#00f',
+                            width:1
+                        }
+                    },
+                    splitLine:{
+                        show:false
+                    },
+                    axisLabel:{fontSize : 12,color:"#00f"},
+                    
+                    min:0,
+                    max:stockDataMap[data.stock].timestamps[0]+60
+                },  
+                yAxis: {  
+                    type: 'value',  
+                    name: '价格 (USD)', 
+                    axisLabel:{fontSize : 12,color:"#00f"},
+                    splitLine:{//背景网格线
+                        show:false,
+                        lineStyle: {
+                            type: 'dashed', // 设置为虚线
+                            color: '#ddd' // 网格线颜色
+                        }
+                    },
+                    
+                    startValue:stockDataMap[data.stock].prices[0],
+                    max:stockDataMap[data.stock].prices[0]*1.1,
+                    min:stockDataMap[data.stock].prices[0]*0.9
+                },  
+                series: [{  
+                    name: '价格',  
+                    type: 'line',  
+                    data: stockDataMap[data.stock].prices,  
+                    smooth: true, // 平滑曲线  
+                    symbol:'none',
+                    itemStyle: {  
+                        color: 'rgba(44, 79, 109, 1)',
+                    },
+                    lineStyle:{
+                            color:'#000',
+                            width:1
+                    },
+                    markLine: {
+                        symbol:'none',
+                        animation: false,
+                        data: [
+                            {
+                                yAxis: stockDataMap[data.stock].prices[0] // 这里指定垂直线的位置，'C' 是 xAxis 的一个数据点
+                            }
+                        ],
+                    },    
+                }],
+                grid:{
+                    top:0,
+                    bottom:0,
+                    right:0,
+                    left:0,
+                    borderWidth:3
+                    // width:'350px',
+                    // height:'80px'
+                }
+
+            };  
+
+            // 使用刚指定的配置项和数据显示图表  
+            myChart.setOption(option);  
+        });  
+    </script>  
+</body>
