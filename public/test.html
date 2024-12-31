@@ -1,0 +1,38 @@
+<html>
+    <head>
+        <style>
+            #container {
+  display: flex;
+}
+ 
+.sortable {
+  margin: 5px;
+  padding: 10px;
+  background-color: #f0f0f0;
+  transition: transform 5s linear;
+}
+        </style>
+    </head>
+    <body>
+        <div id="container">
+            <div class="sortable" data-order="1">1255</div>
+            <div class="sortable" data-order="3">32</div>
+            <div class="sortable" data-order="2">255</div>
+            <button onclick="sortDivs()">Sort</button>
+          </div>
+          <script>
+            function sortDivs() {
+  const container = document.getElementById('container');
+  const divs = Array.from(container.querySelectorAll('.sortable'));
+ 
+  divs.sort((a, b) => {
+    return parseInt(a.dataset.order) - parseInt(b.dataset.order);
+  });
+ 
+  divs.forEach((div, index) => {
+    div.style.order = index;
+  });
+}
+          </script>
+    </body>
+</html>

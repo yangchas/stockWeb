@@ -7,40 +7,108 @@ const redis = require('redis');
 //const neatcsv = require('neat-csv')
 const csv = require('csv-parser');  
 const iconv = require('iconv-lite');  
+const { v4: uuidv4 } = require('uuid');
 const fs = require('fs');  
 const app = express();  
 const server = http.createServer(app);  
 const io = socketIo(server);  
 const bans_info=[]
+let clientIds=[]
 let connectedClients = 0;
-
+// 客户端池  
+const clientPool = new Map(); // 使用 Map 存储客户端的唯一标识符与 Socket 实例 
+const timerPool = {  
+    stockData: {  
+        clients: new Set(), // Track connected clients for this timer  
+        intervalId: null, // Store the interval ID  
+    },  
+    broadcast: {  
+        intervalId: null, // Store the broadcast interval ID  
+    },  
+};  
 io.on('connection',(socket)=>{
-    console.log('客户端已连接')
-    connectedClients++
-    if (connectedClients === 1) {  
-        startTimer();  
+    const clientId = uuidv4(); 
+    clientIds.push(clientId)
+    clientPool.set(clientId, socket); // 将客户端 ID 存入池中  
+    console.log(`客户端已连接: ${clientId}`); 
+    // 发送客户端唯一标识符给客户端  
+    socket.emit('client_id', { id: clientId });
+
+    timerPool.stockData.clients.add(socket);  
+    // Start timer if no timer is running  
+    if (!timerPool.stockData.intervalId) {  
+        startStockDataTimer();  
     }  
     socket.on('disconnect',()=>{
-        console.log('客户端已断开')
-        connectedClients--;
-        // Stop the timer if this was the last client  
-        if (connectedClients === 0) {  
-            stopTimer();  
+        console.log(`客户端已断开: ${clientId}`);  
+        // 从池中移除客户端  
+        clientPool.delete(clientId); 
+        clientIds.pop(clientId)
+        // Remove client from the corresponding timer pool  
+        timerPool.stockData.clients.delete(socket);  
+
+        // Stop timer if no clients are left  
+        if (timerPool.stockData.clients.size === 0) {  
+            stopStockDataTimer();  
         }  
     })
+    // Handle broadcasting message request  
+    socket.on('start_broadcast', () => {  
+        console.log('启动广播');  
+
+        // Start broadcast timer if not already started  
+        if (!timerPool.broadcast.intervalId) {  
+            startBroadcastTimer();  
+        }  
+    });  
+    socket.on('stop_broadcast', () => {  
+        console.log('停止广播');  
+        stopBroadcastTimer();  
+    });  
     socket.on('msg',(data)=>{
         console.log('接受到客户端信息',data)
+        socket.emit('msg',{'info':'消息已接收'})
+        timerPool.stockData.clients.add(socket);  
+        // Start timer if no timer is running  
+        if (!timerPool.stockData.intervalId) {  
+            startStockDataTimer();  
+        }  
         if('ban' in data){
             console.log('发送连板',bans_info.length)
             socket.emit('msg',{'ban':bans_info})
         }else if('buy' in data){
             console.log('购买',data['buy'])
             client.set('buy',data['buy']);
-       
+        }else if('msgToAll' in data){
+            sendMessageToAll(socket,'大家好，我是jj')
+        }else if('msgToOne' in data){
+            sendMessageToClient(clientIds[0],'这是个人信息')
+            sendMessageToClient(clientIds[1],'这是个人信息')
         }
     })
 })
-
+// 函数：向特定客户端发送消息  
+function sendMessageToClient(clientId, message) {  
+    const socket = clientPool.get(clientId);  
+    if (socket) {  
+        socket.emit('msg', { message }); // 向特定客户端发送消息  
+        console.log(`消息已发送到客户端 ${clientId}`);  
+    } else {  
+        console.log(`客户端 ${clientId} 不存在`);  
+    }  
+}  
+// 函数：向特定客户端发送消息  
+// function sendMessageToAll(message) {  
+//     io.emit('msg', { message });
+// }  
+// 向除发送者外的所有客户端发送消息  
+function sendMessageToAll(senderSocket, message) {  
+    clientPool.forEach((socket, clientId) => {  
+        if (socket !== senderSocket) {  
+            socket.emit('msg', { message });  
+        }  
+    });  
+}  
 const results = [];
 // const stream=fs.createReadStream('D:/software/DTQMT/INFO/HIS/1226/ban1.csv') // 替换为你的 CSV 文件路径
 const stream=fs.createReadStream('D:/software/DTQMT/INFO/ban1.csv') // 替换为你的 CSV 文件路径
@@ -129,12 +197,32 @@ function sendStockData1() {
     }   
     )
  }
-function startTimer() {  
-    timer = setInterval(sendStockData1, 2000); // Send data every 2 seconds  
+// Function to send broadcast message  
+function broadcastMessage() {  
+    const message = '这是广播消息: 当前时间是 ' + new Date().toLocaleTimeString();  
+    io.emit('msg', { message }); // Emit to all clients  
 }  
 
-function stopTimer() {  
-    clearInterval(timer); // Stop the timer  
+// Start stock data timer  
+function startStockDataTimer() {  
+    timerPool.stockData.intervalId = setInterval(sendStockData1, 2000); // 每2秒发送一次数据  
+}  
+
+// Stop stock data timer  
+function stopStockDataTimer() {  
+    clearInterval(timerPool.stockData.intervalId); // 停止定时器  
+    timerPool.stockData.intervalId = null; // 重置intervalId  
+}  
+
+// Start broadcast timer  
+function startBroadcastTimer() {  
+    timerPool.broadcast.intervalId = setInterval(broadcastMessage, 5000); // 每5秒发送一次广播消息  
+}  
+
+// Stop broadcast timer  
+function stopBroadcastTimer() {  
+    clearInterval(timerPool.broadcast.intervalId); // 停止定时器  
+    timerPool.broadcast.intervalId = null; // 重置intervalId  
 }  
 // sendStockData1()
 // setInterval(sendStockData1, 1000);

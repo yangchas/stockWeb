@@ -13,14 +13,26 @@
         }
         .chart { width: 100%; height: 100px; }
         .stock{
-        position: relative;}
+            position: relative;
+            /* transition: transform 5s linear; */
+        }
+        #b1 span,#b2 span,#b3 span,#b4 span,#b5 span{
+            cursor: pointer;
+            margin: 2px 10px;
+            color: #c3cb69;
+        }
     </style>  
 </head>  
 <body> 
     <div style="width: 100%;height: 100%;background-color: rgb(44, 79, 109);display: inline-flex">
         <div style="width: 5%;min-width: 80px;;height: 100%;background-color: antiquewhite;font-size: 22px;">
             <div style="height: 22px;line-height: 22px;background-color: rgb(143, 79, 202);padding: 8px 4px;text-align: center;color: aliceblue;">首页</div>
-            <div style="height: 22px;line-height: 22px;background-color: rgb(137, 117, 156);padding: 8px 4px;text-align: center;color: aliceblue;">其他</div>
+            <div onclick="f1()" style="height: 22px;line-height: 22px;background-color: rgb(137, 117, 156);padding: 8px 4px;text-align: center;color: aliceblue;">开启广播</div>
+            <div onclick="f2()" style="height: 22px;line-height: 22px;background-color: rgb(137, 117, 156);padding: 8px 4px;text-align: center;color: aliceblue;">停止广播</div>
+            <div onclick="f3()" style="height: 22px;line-height: 22px;background-color: rgb(137, 117, 156);padding: 8px 4px;text-align: center;color: aliceblue;">msg</div>
+            <div onclick="f4()" style="height: 22px;line-height: 22px;background-color: rgb(137, 117, 156);padding: 8px 4px;text-align: center;color: aliceblue;">ToAll</div>
+            <div onclick="f5()" style="height: 22px;line-height: 22px;background-color: rgb(137, 117, 156);padding: 8px 4px;text-align: center;color: aliceblue;">ToOne</div>
+
         </div>
         <div style="height: 100%;width: 100%;background-color: rgb(107, 178, 178);display: block;">
             <div style="margin: 1%;background-color: rgb(175, 188, 161);height: 98%;">
@@ -36,12 +48,11 @@
                 </div> 
             </br>
                 <div style="display: flex;">
-                    <div id="b1"  style="width: 25%;background-color: rgb(122, 144, 144);">1板</div>
-                    <div id="b2"  style="width: 25%;background-color: rgb(79, 170, 170);">2板</div>
-                    <div id="b3"  style="width: 25%;background-color: rgb(81, 196, 171);">3板</div>
-                    <div id="b4"  style="width: 25%;background-color: rgb(96, 159, 76);">4板</div>
-                    <div id="b5" style="width: 25%;background-color: rgb(77, 127, 168);">5板</div>
-
+                    <div id="b1"  style="width: 25%;background-color: rgb(122, 144, 144);display: flex; flex-direction: column;"><div data-hh="999">1板<span onclick="sorted(2,this)">净额</span><span onclick="sorted(0,this)">涨幅</span><span onclick="sorted(1,this)">换手率</span></div></div>
+                    <div id="b2"  style="width: 25%;background-color: rgb(79, 170, 170);display: flex; flex-direction: column;"><div data-hh="999">2板<span onclick="sorted(2,this)">净额</span><span onclick="sorted(0,this)">涨幅</span><span onclick="sorted(1,this)">换手率</span></div></div>
+                    <div id="b3"  style="width: 25%;background-color: rgb(81, 196, 171);display: flex; flex-direction: column;"><div data-hh="999">3板<span onclick="sorted(2,this)">净额</span><span onclick="sorted(0,this)">涨幅</span><span onclick="sorted(1,this)">换手率</span></div></div>
+                    <div id="b4"  style="width: 25%;background-color: rgb(96, 159, 76);display: flex; flex-direction: column;"><div data-hh="999">4板<span onclick="sorted(2,this)">净额</span><span onclick="sorted(0,this)">涨幅</span><span onclick="sorted(1,this)">换手率</span></div></div>
+                    <div id="b5" style="width: 25%;background-color: rgb(77, 127, 168);display: flex; flex-direction: column;"><div data-hh="999">5板<span onclick="sorted(2,this)">净额</span><span onclick="sorted(0,this)">涨幅</span><span onclick="sorted(1,this)">换手率</span></div></div>
                 </div>  
             <!-- </br>
                 <div style="display: flex;height: 20%;">
@@ -62,6 +73,7 @@
         const socket = io();  
         const stockDataMap = {};  
         const ban=[]
+        sortType=0
         socket.emit('msg',{'ban':0})
         // socket.on('ban', function(data) {
         //     ban=data
@@ -73,7 +85,55 @@
                 console.log(data['ban'])
                 deal(data['ban'])
             }
+            
         })
+        function f1(){
+            socket.emit('start_broadcast',{'ban':0})
+        }
+        function f2(){
+            socket.emit('stop_broadcast',{'ban':0})
+        }
+        function f3(){
+            socket.emit('msg',{'info':0})
+        }
+        function f4(){
+            socket.emit('msg',{'msgToAll':0})
+        }
+        function f5(){
+            socket.emit('msg',{'msgToOne':0})
+        }
+        function sorted(e,v){
+            sortType=e
+            if(e){
+                // console.log(v.parentNode.parentNode.childNodes)
+                const divs=Array.from(v.parentNode.parentNode.childNodes).slice(1)
+                if(e==2){//净额 小到大
+                     divs.sort((a, b) => {
+                        return  parseInt(a.dataset.dde) - parseInt(b.dataset.dde);
+                    });
+                }else if(e==1){//换手率 大到小
+                    divs.sort((a, b) => {
+
+                    return  parseInt(b.dataset.changed) - parseInt(a.dataset.changed);
+                });
+
+                }else{//涨幅 大到小
+                    divs.sort((a, b) => {
+                        return  parseInt(b.dataset.hh) - parseInt(a.dataset.hh);
+                    });
+                    
+                }
+               
+                
+                divs.forEach((div, index) => {
+                    div.style.order = index;
+                });
+            }
+        }
+        // 接收客户端唯一 ID  
+        socket.on('client_id', (data) => {  
+            console.log('您的客户端 ID:', data.id);  
+        });  
         function deal(data){
             for(d in data){
                 if(data[d].bans>5)
@@ -83,9 +143,12 @@
                 let stockDiv = document.getElementById(data[d].id);
                 if (!stockDiv) {  
                     stockDiv = document.createElement('div');  
+                    stockDiv.setAttribute('data-hh',0)
+                    stockDiv.setAttribute('data-dde',data[d].dde)
+                    stockDiv.setAttribute('data-changed',data[d].changed)
                     stockDiv.id = data[d].id;  
                     stockDiv.className = 'stock';  
-                    stockDiv.innerHTML = `<h6 ondblclick="dblClickFn('${data[d].id}')" style="cursor: pointer;z-index:999;position: absolute;left:50%;color:#eee">${data[d].name}</h6>`;  
+                    stockDiv.innerHTML = `<div ondblclick="dblClickFn('${data[d].id}')" style="cursor: pointer;z-index:999;position: absolute;left:50%;color:#eee">${data[d].name}</div><div style="font-size: 12px; text-align: left; right: 28px;top:30px;position: absolute;color: chartreuse;">${parseInt(data[d].dde/10000)}</br>${parseInt(data[d].changed)}</div> `;  
                     stockDiv.innerHTML += `<div class="chart" id="${data[d].id}-chart"></div>`;  
                     container.appendChild(stockDiv);  
                 }
@@ -100,7 +163,22 @@
             //const container = document.getElementById('b4');
             if(data.stock=="002137.SZ")
                 console.log(data)
-        
+            var sd=document.getElementById(data.stock)
+            if(sd){
+                
+                sd.setAttribute('data-hh',((data.price[data.price.length-1]-data.preClose)/data.preClose*100).toFixed(1))
+                if(!sortType){
+                    const divs=Array.from(sd.parentNode.childNodes).slice(1)
+                    divs.sort((a, b) => {
+                        return  parseInt(b.dataset.hh) - parseInt(a.dataset.hh);
+                    });
+                    
+                    divs.forEach((div, index) => {
+                        div.style.order = index;
+                    });
+                }
+                
+            }
              // 绘制 ECharts  
             const chartDom = document.getElementById(`${data.stock}-chart`);  
             const myChart = echarts.init(chartDom);   
@@ -170,7 +248,7 @@
                                 },
                             },
                             {
-                                yAxis:data.stock.slice(0,2)=='30'?data.preClose*1.2:data.preClose*1.1,
+                                yAxis:data.stock.slice(0,2)=='30'?data.preClose*1.21:data.preClose*1.11,
                                 lineStyle:{
                                     color:'#a3cf62',
                                     width:1
@@ -272,8 +350,8 @@
                     },
                     
                     startValue:stockDataMap[data.stock].prices[0],
-                    max:stockDataMap[data.stock].prices[0]*1.1,
-                    min:stockDataMap[data.stock].prices[0]*0.9
+                    max:stockDataMap[data.stock].prices[0]*1.11,
+                    min:stockDataMap[data.stock].prices[0]*0.89
                 },  
                 series: [{  
                     name: '价格',  
