@@ -175,8 +175,8 @@ function sendStockData1() {
                 times=[]
                 
                 for (v in vals) {
-                    volumes.push(vals[v].volume)
-                    prices.push(vals[v].close)
+                    volumes.push(parseInt(vals[v].volume*vals[v].close*0.01))
+                    prices.push(((vals[v].close-vals[0].preClose)/vals[0].preClose*100).toFixed(2))
                     times.push(vals[v].stime.slice(8,12))
                     //console.log(vals[v])
                 }
@@ -205,7 +205,7 @@ function broadcastMessage() {
 
 // Start stock data timer  
 function startStockDataTimer() {  
-    timerPool.stockData.intervalId = setInterval(sendStockData1, 2000); // 每2秒发送一次数据  
+    timerPool.stockData.intervalId = setInterval(sendStockData1, 1000); // 每2秒发送一次数据  
 }  
 
 // Stop stock data timer  
@@ -239,6 +239,6 @@ app.get('/', (req, res) => {
 
 // 启动服务器  
 const PORT = process.env.PORT || 3000;  
-server.listen(PORT, () => {  
+server.listen(PORT, () => {
     console.log(`服务器正在运行在 http://localhost:${PORT}`);  
 });
