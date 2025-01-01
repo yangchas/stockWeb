@@ -8,10 +8,19 @@ const redis = require('redis');
 const csv = require('csv-parser');  
 const iconv = require('iconv-lite');  
 const { v4: uuidv4 } = require('uuid');
+const compression = require('compression')
 const fs = require('fs');  
 const app = express();  
 const server = http.createServer(app);  
-const io = socketIo(server);  
+// const io = socketIo(server);  
+const io = socketIo(server, {  
+    cors: {  
+      origin: '*', // 根据需要进行更改  
+      methods: ['GET', 'POST'],  
+    },  
+    compress: true, // 启用数据压缩  
+  });  
+app.use(compression());
 const bans_info=[]
 let clientIds=[]
 let connectedClients = 0;
@@ -111,28 +120,38 @@ function sendMessageToAll(senderSocket, message) {
 }  
 const results = [];
 // const stream=fs.createReadStream('D:/software/DTQMT/INFO/HIS/1226/ban1.csv') // 替换为你的 CSV 文件路径
-const stream=fs.createReadStream('D:/software/DTQMT/INFO/ban1.csv') // 替换为你的 CSV 文件路径
-.pipe(iconv.decodeStream('gbk')).pipe(csv());
-stream
-.on('data', (data) => results.push(data))
-.on('end', () => {
-    // console.log(JSON.stringify(results));
-    ds=JSON.parse(JSON.stringify(results))
-    // bans_info=[]
-    for(d in ds){
-        // console.log(ds[d]) 
-        key=ds[d]['股票代码']
-        val={
-            'id':ds[d]['股票代码'],
-            'name':ds[d]['股票简称'],
-            'bans':ds[d]['连续涨停天数'],
-            'dde':ds[d]['dde大单净额'],
-            'changed':ds[d]['换手率'],
-        }
-        bans_info.push(val)
+// 检查文件是否存在
+ban_path='D:/software/DTQMT/INFO/ban1.csv'
+fs.access(ban_path, fs.constants.F_OK, (err) => {
+    if (err) {
+        console.error(`${ban_path} does not exist`);
+        ban_path='D:/software/DTQMT/INFO/HIS/1231/ban1.csv'
+    //   return;
     }
-    console.log('获取连板信息:',bans_info.length)
-    
+    const stream=fs.createReadStream(ban_path) // 替换为你的 CSV 文件路径
+    .pipe(iconv.decodeStream('gbk')).pipe(csv());
+    stream
+    .on('data', (data) => results.push(data))
+
+    .on('end', () => {
+        // console.log(JSON.stringify(results));
+        ds=JSON.parse(JSON.stringify(results))
+        // bans_info=[]
+        for(d in ds){
+            // console.log(ds[d]) 
+            key=ds[d]['股票代码']
+            val={
+                'id':ds[d]['股票代码'],
+                'name':ds[d]['股票简称'],
+                'bans':ds[d]['连续涨停天数'],
+                'dde':ds[d]['dde大单净额'],
+                'changed':ds[d]['换手率'],
+            }
+            bans_info.push(val)
+        }
+        console.log('获取连板信息:',bans_info.length)
+        
+    });
 });
 
 // 创建并配置Redis客户端
@@ -150,7 +169,7 @@ client.on('connect', () => {
 });
    
 client.on('error', (err) => {
-    console.log('Error connecting to Redis:', err);
+    console.error('Error connecting to Redis:', err);
 });
 
 
@@ -164,6 +183,7 @@ function sendStockData1() {
     getRedisValue('my_dict').then(val=>{
         data=JSON.parse(val)
         if(data){
+            var stdatas=[]
             for(d in data){
                 // console.log((JSON.parse(data[d][Object.keys(data[d])[0]])).length)
                 dt=data[d]//单项
@@ -178,22 +198,19 @@ function sendStockData1() {
                     volumes.push(parseInt(vals[v].volume*vals[v].close*0.01))
                     prices.push(((vals[v].close-vals[0].preClose)/vals[0].preClose*100).toFixed(2))
                     times.push(vals[v].stime.slice(8,12))
-                    //console.log(vals[v])
+
                 }
-                // console.log(key,times)
-                io.emit('st_data', {  
-                    
+                stdatas.push({
                     stock: key,  
                     open: vals[0].open,  
                     preClose: vals[0].preClose,  
                     volume: volumes,  
                     price: prices,  
                     time:times
-                    
-                });  
+                })
             }
+            io.emit('st_data',stdatas)
         } 
-     
     }   
     )
  }

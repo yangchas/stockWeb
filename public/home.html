@@ -16,7 +16,10 @@
             position: relative;
             /* transition: transform 5s linear; */
         }
-        #b1 span,#b2 span,#b3 span,#b4 span,#b5 span{
+        /* #b1 .stock{
+            width: 50%;
+        } */
+        #b1 span,#b12 span,#b2 span,#b3 span,#b4 span,#b5 span{
             cursor: pointer;
             margin: 2px 10px;
             color: #c3cb69;
@@ -37,7 +40,7 @@
         <div style="height: 100%;width: 100%;background-color: rgb(107, 178, 178);display: block;">
             <div style="margin: 1%;background-color: rgb(175, 188, 161);height: 98%;">
                 <div style="display: flex;height: 10%;">
-                    <div style="width: 25%;background-color: rgb(122, 144, 144);">情绪</div>
+                    <div style="width: 2%;background-color: rgb(122, 144, 144);">情绪</div>
                     <div style="width: 25%;background-color: rgb(79, 170, 170);">连板</div>
                     <div style="width: 25%;background-color: rgb(81, 196, 171);">板块</div>
                     <div style="width: 25%;background-color: rgb(96, 159, 76);">资金</div>
@@ -48,11 +51,12 @@
                 </div> 
             </br>
                 <div style="display: flex;">
-                    <div id="b1"  style="width: 25%;background-color: rgb(122, 144, 144);display: flex; flex-direction: column;"><div data-hh="999">1板<span onclick="sorted(2,this)">净额</span><span onclick="sorted(0,this)">涨幅</span><span onclick="sorted(1,this)">换手率</span></div></div>
-                    <div id="b2"  style="width: 25%;background-color: rgb(79, 170, 170);display: flex; flex-direction: column;"><div data-hh="999">2板<span onclick="sorted(2,this)">净额</span><span onclick="sorted(0,this)">涨幅</span><span onclick="sorted(1,this)">换手率</span></div></div>
-                    <div id="b3"  style="width: 25%;background-color: rgb(81, 196, 171);display: flex; flex-direction: column;"><div data-hh="999">3板<span onclick="sorted(2,this)">净额</span><span onclick="sorted(0,this)">涨幅</span><span onclick="sorted(1,this)">换手率</span></div></div>
-                    <div id="b4"  style="width: 25%;background-color: rgb(96, 159, 76);display: flex; flex-direction: column;"><div data-hh="999">4板<span onclick="sorted(2,this)">净额</span><span onclick="sorted(0,this)">涨幅</span><span onclick="sorted(1,this)">换手率</span></div></div>
-                    <div id="b5" style="width: 25%;background-color: rgb(77, 127, 168);display: flex; flex-direction: column;"><div data-hh="999">5板<span onclick="sorted(2,this)">净额</span><span onclick="sorted(0,this)">涨幅</span><span onclick="sorted(1,this)">换手率</span></div></div>
+                    <div id="b1"  style="width: 20%;background-color: rgb(122, 144, 144);display: flex; flex-direction: column;"><div data-hh="999">1板<span onclick="sorted(2,this)">净额</span><span onclick="sorted(0,this)">涨幅</span><span onclick="sorted(1,this)">换手率</span></div></div>
+                    <div id="b12"  style="width: 20%;background-color: rgb(122, 144, 144);display: flex; flex-direction: column;"><div data-hh="999">1板<span onclick="sorted(2,this)">净额</span><span onclick="sorted(0,this)">涨幅</span><span onclick="sorted(1,this)">换手率</span></div></div>
+                    <div id="b2"  style="width: 20%;background-color: rgb(79, 170, 170);display: flex; flex-direction: column;"><div data-hh="999">2板<span onclick="sorted(2,this)">净额</span><span onclick="sorted(0,this)">涨幅</span><span onclick="sorted(1,this)">换手率</span></div></div>
+                    <div id="b3"  style="width: 20%;background-color: rgb(81, 196, 171);display: flex; flex-direction: column;"><div data-hh="999">3板<span onclick="sorted(2,this)">净额</span><span onclick="sorted(0,this)">涨幅</span><span onclick="sorted(1,this)">换手率</span></div></div>
+                    <div id="b4"  style="width: 20%;background-color: rgb(96, 159, 76);display: flex; flex-direction: column;"><div data-hh="999">4板<span onclick="sorted(2,this)">净额</span><span onclick="sorted(0,this)">涨幅</span><span onclick="sorted(1,this)">换手率</span></div></div>
+                    <div id="b5" style="width: 20%;background-color: rgb(77, 127, 168);display: flex; flex-direction: column;"><div data-hh="999">5板<span onclick="sorted(2,this)">净额</span><span onclick="sorted(0,this)">涨幅</span><span onclick="sorted(1,this)">换手率</span></div></div>
                 </div>  
             <!-- </br>
                 <div style="display: flex;height: 20%;">
@@ -70,7 +74,11 @@
         </div>
     </div> 
     <script>  
-        const socket = io();  
+        // const socket = io();  
+        const socket = io('http://localhost:3000', {  
+            transports: ['websocket'], // 选择传输方式  
+            compress: true // 启用数据压缩  
+        });  
         const stockDataMap = {};  
         const ban=[]
         sortType=0
@@ -160,15 +168,26 @@
             socket.emit('msg',{'buy':e})
             alert('购买了',e)
         }
-        socket.on('st_data', function(data) {
+        socket.on('st_data', function(stdata) {
             // console.log(data.stock.slice(0,2))
             //const container = document.getElementById('b4');
             // if(data.stock!="600397.SH")
             //     return
+            for(i in stdata){
+                data=stdata[i]
             var sd=document.getElementById(data.stock)
             if(sd){
-                
-                sd.setAttribute('data-hh',((data.price[data.price.length-1]-data.preClose)/data.preClose*100).toFixed(1))
+                if(sd.parentElement.id=='b1'&&data.price[data.price.length-1]>9.5){
+                    var b12=document.getElementById('b12')
+                    b12.appendChild(sd)
+                    // console.log(b12)
+                }
+                if(sd.parentElement.id=='b12'&&data.price[data.price.length-1]<9.5){
+                    var b1=document.getElementById('b1')
+                    b1.appendChild(sd)
+                    // console.log(b12)
+                }
+                sd.setAttribute('data-hh',data.price[data.price.length-1])
                 if(!sortType){
                     const divs=Array.from(sd.parentNode.childNodes).slice(1)
                     divs.sort((a, b) => {
@@ -196,7 +215,7 @@
                 // legend: {
                 //     data: ['价格', '成交量']
                 // },
-                xAxis: {  
+                xAxis: {
                     type: 'category',  
                     data: data.time,  
                     name: '时间 (分钟)',  
@@ -239,6 +258,7 @@
                     position: 'right',
                     // alignTicks: true,
                     max:5000,
+                    offset: -10,
                     splitLine:{//背景网格线
                         show:false,
                         // lineStyle: {
@@ -295,8 +315,8 @@
                 }
             ],
                 grid:{
-                    top:'5%',
-                    bottom:'10%',
+                    top:'4%',
+                    bottom:'15%',
                     right:'10%',
                     left:0,
                     borderWidth:1,
@@ -308,6 +328,7 @@
             // if(data.stock=="600397.SH")
             // 使用刚指定的配置项和数据显示图表  
             myChart.setOption(option);   
-        })  
+        }}
+    )  
     </script>  
 </body>

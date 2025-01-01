@@ -1,38 +1,40 @@
-<html>
-    <head>
-        <style>
-            #container {
-  display: flex;
-}
- 
-.sortable {
-  margin: 5px;
-  padding: 10px;
-  background-color: #f0f0f0;
-  transition: transform 5s linear;
-}
-        </style>
-    </head>
-    <body>
-        <div id="container">
-            <div class="sortable" data-order="1">1255</div>
-            <div class="sortable" data-order="3">32</div>
-            <div class="sortable" data-order="2">255</div>
-            <button onclick="sortDivs()">Sort</button>
-          </div>
-          <script>
-            function sortDivs() {
-  const container = document.getElementById('container');
-  const divs = Array.from(container.querySelectorAll('.sortable'));
- 
-  divs.sort((a, b) => {
-    return parseInt(a.dataset.order) - parseInt(b.dataset.order);
-  });
- 
-  divs.forEach((div, index) => {
-    div.style.order = index;
-  });
-}
-          </script>
-    </body>
+<!DOCTYPE html>  
+<html lang="en">  
+<head>  
+    <meta charset="UTF-8">  
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">  
+    <title>移动DIV示例</title>  
+    <style>  
+        #destination {  
+            border: 1px solid #000;  
+            padding: 10px;  
+            min-height: 50px; /* 目标div高度 */  
+        }  
+    </style>  
+</head>  
+<body>  
+    <div id="source">  
+        <h1>这是源DIV</h1>  
+        <p>这是一些内容。</p>  
+    </div>  
+
+    <div id="destination">  
+        <h2>目标DIV</h2>  
+    </div>  
+
+    <button id="moveButton">移动DIV</button>  
+
+    <script>  
+      document.addEventListener('DOMContentLoaded', function() {  
+    // 你的代码  
+    document.getElementById('moveButton').addEventListener('click', function() {  
+        const sourceDiv = document.getElementById('source');  
+        const destinationDiv = document.getElementById('destination');  
+        
+        // 将源DIV移动到目标DIV内部  
+        destinationDiv.appendChild(sourceDiv);  
+    });  
+});  
+    </script>  
+</body>  
 </html>
