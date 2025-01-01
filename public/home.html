@@ -77,21 +77,35 @@
         // const socket = io();  
         const socket = io('http://localhost:3000', {  
             transports: ['websocket'], // 选择传输方式  
-            compress: true // 启用数据压缩  
+            compress: true, // 启用数据压缩 
+            pingInterval: 60000, // 每60秒发送一次Ping  
+            pingTimeout: 25000,  // Ping超时 
         });  
         const stockDataMap = {};  
         const ban=[]
+        var AllBanData={}
         sortType=0
+        //请求连板信息 用于初始化dom节点
         socket.emit('msg',{'ban':0})
         // socket.on('ban', function(data) {
         //     ban=data
         //     console.log(ban)
         // })
+        // 请求分钟历史行情
+        socket.emit('msg',{'hisban':0})
         socket.on('msg', (data)=> {
             console.log('接受到服务器消息：',data)
             if('ban' in data){
                 console.log(data['ban'])
                 deal(data['ban'])
+            }else if('hisban' in data){
+                console.log("获取到连板当天历史行情")
+                // AllBanData=data.hisban
+                // AllBanData=[{d.stock:d} for(d in AllBanData)
+                for(d in data.hisban){
+                    AllBanData[data.hisban[d].stock]=data.hisban[d]
+                }
+                console.log("AllBanData:",AllBanData)
             }
             
         })
@@ -169,12 +183,55 @@
             alert('购买了',e)
         }
         socket.on('st_data', function(stdata) {
+            if(AllBanData){
+                for(d in stdata){
+                    if((AllBanData[stdata[d].stock]).time[(AllBanData[stdata[d].stock]).time.length-1]>(stdata[d]).time){
+                        socket.emit('msg',{'hisban':0})
+                    }
+                
+                    //  console.log((AllBanData[stdata[d].stock]).time)
+                    //  console.log((stdata[d]).time in (AllBanData[stdata[d].stock]).time)
+                      //监控较大变化|短线提醒
+                            if(stdata[d].volume-AllBanData[stdata[d].stock].volume[AllBanData[stdata[d].stock].price.length-1]>1000){
+                                console.log(stdata[d].stock,":大单买入",stdata[d].volume," ",AllBanData[stdata[d].stock].volume[AllBanData[stdata[d].stock].price.length-1])
+                                var element = document.getElementById(stdata[d].stock);
+                                element.style.backgroundColor='#c6b6db'
+                                setTimeout(() => {
+                                    element.style.backgroundColor=''
+                                }, 5000);
+
+                            }
+                        if((AllBanData[stdata[d].stock]).time.includes((stdata[d]).time)){
+                            //监控最终位置
+                            AllBanData[stdata[d].stock].price[AllBanData[stdata[d].stock].price.length-1]=stdata[d].price
+                            AllBanData[stdata[d].stock].volume[AllBanData[stdata[d].stock].price.length-1]=stdata[d].volume
+                            
+                        }else{
+                            AllBanData[stdata[d].stock].time.push(stdata[d].time)
+                            AllBanData[stdata[d].stock].price.push(stdata[d].price)
+                            AllBanData[stdata[d].stock].volume.push(stdata[d].volume)
+                        }
+                          
+
+                    // )
+                    // break
+                    // console.log(stdata[d])
+                }
+                // console.log(AllBanData)
+            }else{
+                socket.emit('msg',{'hisban':0})
+            }
+            // console.log(data)
+            draw()
+        })
+        function draw() {
             // console.log(data.stock.slice(0,2))
             //const container = document.getElementById('b4');
             // if(data.stock!="600397.SH")
             //     return
-            for(i in stdata){
-                data=stdata[i]
+            for(i in AllBanData){
+                data=AllBanData[i]
+                // console.log(data.time.length)
             var sd=document.getElementById(data.stock)
             if(sd){
                 if(sd.parentElement.id=='b1'&&data.price[data.price.length-1]>9.5){
@@ -213,7 +270,7 @@
                     trigger: 'axis',  
                 },  
                 // legend: {
-                //     data: ['价格', '成交量']
+                //     data: ['涨幅', '成交额']
                 // },
                 xAxis: {
                     type: 'category',  
@@ -236,7 +293,7 @@
             
                 yAxis: [{  
                     type: 'value',  
-                    name: '价格', 
+                    name: '涨幅', 
                     axisLabel:{fontSize : 12,color:"#00f"},
                     position: 'left',
                     splitLine:{//背景网格线
@@ -254,7 +311,7 @@
                     min:-10
                 },{
                     type: 'value',
-                    name: '成交量',
+                    name: '成交额',
                     position: 'right',
                     // alignTicks: true,
                     max:5000,
@@ -268,7 +325,7 @@
                     }, 
                 }],  
                 series: [{
-                    name: '价格',  
+                    name: '涨幅',  
                     type: 'line',  
                     data: data.price,  
                     smooth: true, // 平滑曲线  
@@ -308,7 +365,7 @@
                     //     ],
                     // },    
                     },{
-                    name: '成交量',
+                    name: '成交额',
                     data: data.volume,
                     type: 'bar',
                     yAxisIndex: 1,
@@ -329,6 +386,6 @@
             // 使用刚指定的配置项和数据显示图表  
             myChart.setOption(option);   
         }}
-    )  
+     
     </script>  
 </body>
