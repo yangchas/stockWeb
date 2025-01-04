@@ -47,9 +47,9 @@ io.on('connection',(socket)=>{
 
     timerPool.stockData.clients.add(socket);  
     // Start timer if no timer is running  
-    // if (!timerPool.stockData.intervalId) {  
-    //     startStockDataTimer();  
-    // }  
+    if (!timerPool.stockData.intervalId) {  
+        startStockDataTimer();  
+    }  
     socket.on('disconnect',()=>{
         console.log(`客户端已断开: ${clientId}`);  
         // 从池中移除客户端  
@@ -126,7 +126,8 @@ function sendMessageToAll(senderSocket, message) {
 const results = [];
 // const stream=fs.createReadStream('D:/software/DTQMT/INFO/HIS/1226/ban1.csv') // 替换为你的 CSV 文件路径
 // 检查文件是否存在
-ban_path='D:/software/DTQMT/INFO/ban1.csv'
+// ban_path='D:/software/DTQMT/INFO/ban1.csv'
+ban_path='D:/software/DTQMT/INFO/HIS/1226/ban1.csv'
 fs.access(ban_path, fs.constants.F_OK, (err) => {
     if (err) {
         console.error(`${ban_path} does not exist`);
@@ -151,6 +152,11 @@ fs.access(ban_path, fs.constants.F_OK, (err) => {
                 'bans':ds[d]['连续涨停天数'],
                 'dde':ds[d]['dde大单净额'],
                 'changed':ds[d]['换手率'],
+                'amount':ds[d]['amount'],
+                'bid':ds[d]['bid'],
+                'ask':ds[d]['ask'],
+                'pre_price':ds[d]['pre_price'],
+                'current_price':ds[d]['current_price'],
             }
             bans_info.push(val)
         }
@@ -198,21 +204,40 @@ function sendStockAllData() {
                 volumes=[]
                 prices=[]
                 times=[]
-                
-                for (v in vals) {
-                    volumes.push(parseInt(vals[v].volume*vals[v].close*0.01))
-                    prices.push(((vals[v].close-vals[0].preClose)/vals[0].preClose*100).toFixed(2))
-                    times.push(vals[v].stime.slice(8,12))
-
+                if(vals[0].lastPrice){
+                    // console.log("这是tick")
+                    for (v in vals) {
+                        // volumes.push(parseInt(vals[v].volume*vals[v].lastPrice*0.01))
+                        volumes.push(parseInt(vals[v].amount*0.0001))
+                        prices.push(((vals[v].lastPrice-vals[0].lastClose)/vals[0].lastClose*100).toFixed(2))
+                        times.push(vals[v].stime.slice(8,12))
+                    }
+                    volumes=volumes.slice(1).map((num, i) => num - volumes[i])
+                    
+                    stdatas.push({
+                        stock: key,  
+                        open: vals[0].open,  
+                        preClose: vals[0].lastClose,  
+                        volume: volumes,  
+                        price: prices,  
+                        time:times
+                    })
+                }else{
+                    // console.log("这是1minute")
+                    for (v in vals) {
+                        volumes.push(parseInt(vals[v].volume*vals[v].close*0.01))
+                        prices.push(((vals[v].close-vals[0].preClose)/vals[0].preClose*100).toFixed(2))
+                        times.push(vals[v].stime.slice(8,12))
+                    }
+                    stdatas.push({
+                        stock: key,  
+                        open: vals[0].open,  
+                        preClose: vals[0].preClose,  
+                        volume: volumes,  
+                        price: prices,  
+                        time:times
+                    })
                 }
-                stdatas.push({
-                    stock: key,  
-                    open: vals[0].open,  
-                    preClose: vals[0].preClose,  
-                    volume: volumes,  
-                    price: prices,  
-                    time:times
-                })
             }
             io.emit('msg',{'hisban':stdatas})
         } 
@@ -229,15 +254,27 @@ function sendStockAllData() {
                 dt=data[d]//单项
                 key=Object.keys(data[d])[0]// 个股名称
                 vals=JSON.parse(dt[key])
-                console.log("名称：",key," val: ",vals[0])
-                stdatas.push({
-                    stock: key,  
-                    open: vals[0].open,  
-                    preClose: vals[0].preClose,  
-                    volume: parseInt(vals[vals.length-1].volume*vals[vals.length-1].close*0.01),  
-                    price: ((vals[vals.length-1].close-vals[0].preClose)/vals[0].preClose*100).toFixed(2),  
-                    time:vals[vals.length-1].stime.slice(8,12)
-                })
+                // console.log("名称：",key," val: ",vals[0])
+                if(vals[0].lastPrice){
+                    stdatas.push({
+                        stock: key,  
+                        open: vals[0].open,  
+                        preClose: vals[0].lastClose,
+                        volume: parseInt((vals[vals.length-1].amount-vals[vals.length-2].amount)*0.0001),    
+                        price: ((vals[vals.length-1].lastPrice-vals[0].lastClose)/vals[0].lastClose*100).toFixed(2),  
+                        time:vals[vals.length-1].stime.slice(8,12)
+                    })
+                }else{
+                    stdatas.push({
+                        stock: key,  
+                        open: vals[0].open,  
+                        preClose: vals[0].preClose,  
+                        volume: parseInt(vals[vals.length-1].volume*vals[vals.length-1].close*0.01),  
+                        price: ((vals[vals.length-1].close-vals[0].preClose)/vals[0].preClose*100).toFixed(2),  
+                        time:vals[vals.length-1].stime.slice(8,12)
+                    })
+                }
+           
                 // stdatas.push([
                 //     key,
                 //     vals[0].open, 

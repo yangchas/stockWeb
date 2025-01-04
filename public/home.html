@@ -24,11 +24,23 @@
             margin: 2px 10px;
             color: #c3cb69;
         }
+        /* .area-ban{
+            
+        } */
+         .area-top #buylist{
+            display: inline-flex;
+            
+        }
+        .area-top #buylist div{
+            left: 0!important;
+            margin:0 2px;
+            font-size: 12px;
+        }
     </style>  
 </head>  
 <body> 
     <div style="width: 100%;height: 100%;background-color: rgb(44, 79, 109);display: inline-flex">
-        <div style="width: 5%;min-width: 80px;;height: 100%;background-color: antiquewhite;font-size: 22px;">
+        <div style="width: 5%;min-width: 80px;;height: 100%;background-color: antiquewhite;font-size: 14px;">
             <div style="height: 22px;line-height: 22px;background-color: rgb(143, 79, 202);padding: 8px 4px;text-align: center;color: aliceblue;">首页</div>
             <div onclick="f1()" style="height: 22px;line-height: 22px;background-color: rgb(137, 117, 156);padding: 8px 4px;text-align: center;color: aliceblue;">开启广播</div>
             <div onclick="f2()" style="height: 22px;line-height: 22px;background-color: rgb(137, 117, 156);padding: 8px 4px;text-align: center;color: aliceblue;">停止广播</div>
@@ -39,8 +51,13 @@
         </div>
         <div style="height: 100%;width: 100%;background-color: rgb(107, 178, 178);display: block;">
             <div style="margin: 1%;background-color: rgb(175, 188, 161);height: 98%;">
-                <div style="display: flex;height: 10%;">
-                    <div style="width: 2%;background-color: rgb(122, 144, 144);">情绪</div>
+                <div class="area-top" style="display: flex;height: 10%;margin: 5px 5px;">
+                    <div style="width: 25%;background-color: rgb(122, 144, 144);">
+                        <h6>推荐买入</h6>
+                        <div id="buylist">
+
+                        </div>
+                    </div>
                     <div style="width: 25%;background-color: rgb(79, 170, 170);">连板</div>
                     <div style="width: 25%;background-color: rgb(81, 196, 171);">板块</div>
                     <div style="width: 25%;background-color: rgb(96, 159, 76);">资金</div>
@@ -49,14 +66,14 @@
                     <div></div>
                     <div></div>
                 </div> 
-            </br>
-                <div style="display: flex;">
-                    <div id="b1"  style="width: 20%;background-color: rgb(122, 144, 144);display: flex; flex-direction: column;"><div data-hh="999">1板<span onclick="sorted(2,this)">净额</span><span onclick="sorted(0,this)">涨幅</span><span onclick="sorted(1,this)">换手率</span></div></div>
-                    <div id="b12"  style="width: 20%;background-color: rgb(122, 144, 144);display: flex; flex-direction: column;"><div data-hh="999">1板<span onclick="sorted(2,this)">净额</span><span onclick="sorted(0,this)">涨幅</span><span onclick="sorted(1,this)">换手率</span></div></div>
-                    <div id="b2"  style="width: 20%;background-color: rgb(79, 170, 170);display: flex; flex-direction: column;"><div data-hh="999">2板<span onclick="sorted(2,this)">净额</span><span onclick="sorted(0,this)">涨幅</span><span onclick="sorted(1,this)">换手率</span></div></div>
-                    <div id="b3"  style="width: 20%;background-color: rgb(81, 196, 171);display: flex; flex-direction: column;"><div data-hh="999">3板<span onclick="sorted(2,this)">净额</span><span onclick="sorted(0,this)">涨幅</span><span onclick="sorted(1,this)">换手率</span></div></div>
-                    <div id="b4"  style="width: 20%;background-color: rgb(96, 159, 76);display: flex; flex-direction: column;"><div data-hh="999">4板<span onclick="sorted(2,this)">净额</span><span onclick="sorted(0,this)">涨幅</span><span onclick="sorted(1,this)">换手率</span></div></div>
-                    <div id="b5" style="width: 20%;background-color: rgb(77, 127, 168);display: flex; flex-direction: column;"><div data-hh="999">5板<span onclick="sorted(2,this)">净额</span><span onclick="sorted(0,this)">涨幅</span><span onclick="sorted(1,this)">换手率</span></div></div>
+            <!-- </br> -->
+                <div class="area-ban" style="display: flex;">
+                    <div id="b1"  style="width: 20%;background-color: rgb(122, 144, 144);display: flex; flex-direction: column;"><div data-hh="999">1板<span onclick="sorted(2,this)">净额</span><span onclick="sorted(0,this)">涨幅</span><span onclick="sorted(1,this)">昨换</span><span onclick="sorted(3,this)">竞价</span></div></div>
+                    <div id="b12"  style="width: 20%;background-color: rgb(122, 144, 144);display: flex; flex-direction: column;"><div data-hh="999">1板<span onclick="sorted(2,this)">净额</span><span onclick="sorted(0,this)">涨幅</span><span onclick="sorted(1,this)">昨换</span><span onclick="sorted(3,this)">竞价</span></div></div>
+                    <div id="b2"  style="width: 20%;background-color: rgb(79, 170, 170);display: flex; flex-direction: column;"><div data-hh="999">2板<span onclick="sorted(2,this)">净额</span><span onclick="sorted(0,this)">涨幅</span><span onclick="sorted(1,this)">昨换</span><span onclick="sorted(3,this)">竞价</span></div></div>
+                    <div id="b3"  style="width: 20%;background-color: rgb(81, 196, 171);display: flex; flex-direction: column;"><div data-hh="999">3板<span onclick="sorted(2,this)">净额</span><span onclick="sorted(0,this)">涨幅</span><span onclick="sorted(1,this)">昨换</span><span onclick="sorted(3,this)">竞价</span></div></div>
+                    <div id="b4"  style="width: 20%;background-color: rgb(96, 159, 76);display: flex; flex-direction: column;"><div data-hh="999">4板<span onclick="sorted(2,this)">净额</span><span onclick="sorted(0,this)">涨幅</span><span onclick="sorted(1,this)">昨换</span><span onclick="sorted(3,this)">竞价</span></div></div>
+                    <div id="b5" style="width: 20%;background-color: rgb(77, 127, 168);display: flex; flex-direction: column;"><div data-hh="999">5板<span onclick="sorted(2,this)">净额</span><span onclick="sorted(0,this)">涨幅</span><span onclick="sorted(1,this)">昨换</span><span onclick="sorted(3,this)">竞价</span></div></div>
                 </div>  
             <!-- </br>
                 <div style="display: flex;height: 20%;">
@@ -82,7 +99,7 @@
             pingTimeout: 25000,  // Ping超时 
         });  
         const stockDataMap = {};  
-        const ban=[]
+        var ban={}
         var AllBanData={}
         sortType=0
         //请求连板信息 用于初始化dom节点
@@ -97,6 +114,10 @@
             console.log('接受到服务器消息：',data)
             if('ban' in data){
                 console.log(data['ban'])
+                for(d in data.ban){
+                    ban[data.ban[d].stock]=data.ban[d]
+                }
+                // ban=data['ban']
                 deal(data['ban'])
             }else if('hisban' in data){
                 console.log("获取到连板当天历史行情")
@@ -139,6 +160,12 @@
                     return  parseInt(b.dataset.changed) - parseInt(a.dataset.changed);
                 });
 
+                }else if(e==3){//竞价 大到小
+                    divs.sort((a, b) => {
+
+                    return  parseInt(b.dataset.amount) - parseInt(a.dataset.amount);
+                });
+
                 }else{//涨幅 大到小
                     divs.sort((a, b) => {
                         return  parseInt(b.dataset.hh) - parseInt(a.dataset.hh);
@@ -170,11 +197,26 @@
                     stockDiv.setAttribute('data-hh',0)
                     stockDiv.setAttribute('data-dde',data[d].dde)
                     stockDiv.setAttribute('data-changed',data[d].changed)
+                    stockDiv.setAttribute('data-amount',data[d].amount)
                     stockDiv.id = data[d].id;  
-                    stockDiv.className = 'stock';  
-                    stockDiv.innerHTML = `<div ondblclick="dblClickFn('${data[d].id}')" style="cursor: pointer;z-index:999;position: absolute;left:50%;color:#eee">${data[d].name}</div><div style="font-size: 12px; text-align: left; right: 28px;top:30px;position: absolute;color: chartreuse;">${parseInt(data[d].dde/10000)}</br>${parseInt(data[d].changed)}</div> `;  
-                    stockDiv.innerHTML += `<div class="chart" id="${data[d].id}-chart"></div>`;  
-                    container.appendChild(stockDiv);  
+                    stockDiv.className = 'stock';
+                    stTitle=`<div ondblclick="dblClickFn('${data[d].id}')" style="cursor: pointer;z-index:999;position: relative;left:45%;color:#eee">${data[d].name}</div>`  
+                    stockDiv.innerHTML =stTitle+`<div style="font-size: 12px; text-align: left; right: 28px;top:30px;position: absolute;color: chartreuse;">${parseInt(data[d].dde/10000)}</br>${parseInt(data[d].changed)}</div> `;  
+                    stockDiv.innerHTML += `<div style="position: absolute;bottom: 45px;right: 43px;font-size: 10px;">竞:${(parseInt(data[d].amount))}</br>卖 ${parseInt(data[d].ask)}</br>买 ${parseInt(data[d].bid)}</div><div class="chart" id="${data[d].id}-chart"></div>`;  
+                    container.appendChild(stockDiv);
+                    // console.log("sdsfewf",AllBanData)
+                    if(Object.keys(AllBanData).length){
+                        AllBanData[data[d].id]['amount']=data[d].amount
+                        AllBanData[data[d].id]['ask']=data[d].ask
+                        AllBanData[data[d].id]['bid']=data[d].bid
+                    }
+                    if(((data[d].changed > 8 && data[d].dde<0) && data[d].pre_price < data[d].current_price)||
+                    data[d].changed>20 && data[d].amount>5000 && data[d].pre_price*0.93 > data[d].current_price
+                    ){
+                        console.log("超预期",data[d].name)
+                        var buyD=document.getElementById('buylist')
+                        buyD.innerHTML+=stTitle;
+                    }
                 }
             }
         }
@@ -183,7 +225,7 @@
             alert('购买了',e)
         }
         socket.on('st_data', function(stdata) {
-            if(AllBanData){
+            if(Object.keys(AllBanData).length){
                 for(d in stdata){
                     if((AllBanData[stdata[d].stock]).time[(AllBanData[stdata[d].stock]).time.length-1]>(stdata[d]).time){
                         socket.emit('msg',{'hisban':0})
@@ -192,21 +234,35 @@
                     //  console.log((AllBanData[stdata[d].stock]).time)
                     //  console.log((stdata[d]).time in (AllBanData[stdata[d].stock]).time)
                       //监控较大变化|短线提醒
-                            if(stdata[d].volume-AllBanData[stdata[d].stock].volume[AllBanData[stdata[d].stock].price.length-1]>1000){
+                        if(AllBanData[stdata[d].stock].price.length<20) maxW=2000
+                        else if(AllBanData[stdata[d].stock].price.length<40) maxW=1000
+                        else maxW=500
+                        if((AllBanData[stdata[d].stock]).time.includes((stdata[d]).time)){
+                           
+                            //监控最终位置
+                            if(stdata[d].volume-AllBanData[stdata[d].stock].volume[AllBanData[stdata[d].stock].price.length-1]>maxW){
                                 console.log(stdata[d].stock,":大单买入",stdata[d].volume," ",AllBanData[stdata[d].stock].volume[AllBanData[stdata[d].stock].price.length-1])
                                 var element = document.getElementById(stdata[d].stock);
-                                element.style.backgroundColor='#c6b6db'
+                                element.style.backgroundColor='#79CDCD'
                                 setTimeout(() => {
                                     element.style.backgroundColor=''
                                 }, 5000);
 
                             }
-                        if((AllBanData[stdata[d].stock]).time.includes((stdata[d]).time)){
-                            //监控最终位置
                             AllBanData[stdata[d].stock].price[AllBanData[stdata[d].stock].price.length-1]=stdata[d].price
                             AllBanData[stdata[d].stock].volume[AllBanData[stdata[d].stock].price.length-1]=stdata[d].volume
                             
                         }else{
+                                //监控最终位置
+                            if(stdata[d].volume>maxW){
+                                console.log(stdata[d].stock,":大单买入",stdata[d].volume," ",AllBanData[stdata[d].stock].volume[AllBanData[stdata[d].stock].price.length-1])
+                                var element = document.getElementById(stdata[d].stock);
+                                element.style.backgroundColor='#79CDCD'
+                                setTimeout(() => {
+                                    element.style.backgroundColor=''
+                                }, 5000);
+
+                            }
                             AllBanData[stdata[d].stock].time.push(stdata[d].time)
                             AllBanData[stdata[d].stock].price.push(stdata[d].price)
                             AllBanData[stdata[d].stock].volume.push(stdata[d].volume)
@@ -314,7 +370,7 @@
                     name: '成交额',
                     position: 'right',
                     // alignTicks: true,
-                    max:5000,
+                    max:8000,
                     offset: -10,
                     splitLine:{//背景网格线
                         show:false,
@@ -323,7 +379,15 @@
                         //     color: '#ddd' // 网格线颜色
                         // }
                     }, 
-                }],  
+                 
+                },
+                // {
+                //     type:'category',
+                //     name:'买卖',
+                //     data:[7,8],
+
+                // }
+                ],  
                 series: [{
                     name: '涨幅',  
                     type: 'line',  
@@ -331,11 +395,8 @@
                     smooth: true, // 平滑曲线  
                     symbol:'none',
                     itemStyle: {  
-                        color: 'rgba(44, 79, 109, 1)',
-                    },
-                    lineStyle:{
-                            color:'#000',
-                            width:1
+                        color: '#B3EE3A',
+                        width:0.5
                     },
                     // markLine: {
                     //     symbol:'none',
@@ -369,7 +430,16 @@
                     data: data.volume,
                     type: 'bar',
                     yAxisIndex: 1,
-                }
+                    itemStyle:{
+                            color:'#4F4F4F',
+                            width:0.1
+                    },
+                },
+                // {
+                //     name:'买卖',
+                //     type:'bar',
+                //     data:[5,6]
+                // }
             ],
                 grid:{
                     top:'4%',
