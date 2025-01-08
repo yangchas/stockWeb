@@ -40,7 +40,7 @@
 </head>  
 <body> 
     <div style="width: 100%;height: 100%;background-color: rgb(44, 79, 109);display: inline-flex">
-        <div style="width: 5%;min-width: 80px;;height: 100%;background-color: antiquewhite;font-size: 14px;">
+        <!-- <div style="width: 5%;min-width: 80px;;height: 100%;background-color: antiquewhite;font-size: 14px;">
             <div style="height: 22px;line-height: 22px;background-color: rgb(143, 79, 202);padding: 8px 4px;text-align: center;color: aliceblue;">首页</div>
             <div onclick="f1()" style="height: 22px;line-height: 22px;background-color: rgb(137, 117, 156);padding: 8px 4px;text-align: center;color: aliceblue;">开启广播</div>
             <div onclick="f2()" style="height: 22px;line-height: 22px;background-color: rgb(137, 117, 156);padding: 8px 4px;text-align: center;color: aliceblue;">停止广播</div>
@@ -48,7 +48,7 @@
             <div onclick="f4()" style="height: 22px;line-height: 22px;background-color: rgb(137, 117, 156);padding: 8px 4px;text-align: center;color: aliceblue;">ToAll</div>
             <div onclick="f5()" style="height: 22px;line-height: 22px;background-color: rgb(137, 117, 156);padding: 8px 4px;text-align: center;color: aliceblue;">ToOne</div>
 
-        </div>
+        </div> -->
         <div style="height: 100%;width: 100%;background-color: rgb(107, 178, 178);display: block;">
             <div style="margin: 1%;background-color: rgb(175, 188, 161);height: 98%;">
                 <div class="area-top" style="display: flex;height: 10%;margin: 5px 5px;">
@@ -68,6 +68,18 @@
                 </div> 
             <!-- </br> -->
                 <div class="area-ban" style="display: flex;">
+                    <div  style="width: 40%;background-color: rgb(122, 144, 144);display: flex; flex-direction: column;">
+                    <div id="b0">
+
+                    </div>
+                    <div style="display: block;width: 100%;height: 500px;">
+ 
+                    <iframe id="myIframe" marginwidth="0" marginheight="0" scrolling="no"
+                        framespacing="0" vspace="0" hspace="0" frameborder="0" width="400" height="500" 
+                        src="https://www.iwencai.com/unifiedwap/result?w=%E6%9C%88%E7%BA%BFkdj%3C0&querytype=stock">
+                      </iframe>
+                    </div>
+                    </div>
                     <div id="b1"  style="width: 20%;background-color: rgb(122, 144, 144);display: flex; flex-direction: column;"><div data-hh="999">1板<span onclick="sorted(2,this)">净额</span><span onclick="sorted(0,this)">涨幅</span><span onclick="sorted(1,this)">昨换</span><span onclick="sorted(3,this)">竞价</span></div></div>
                     <div id="b12"  style="width: 20%;background-color: rgb(122, 144, 144);display: flex; flex-direction: column;"><div data-hh="999">1板<span onclick="sorted(2,this)">净额</span><span onclick="sorted(0,this)">涨幅</span><span onclick="sorted(1,this)">昨换</span><span onclick="sorted(3,this)">竞价</span></div></div>
                     <div id="b2"  style="width: 20%;background-color: rgb(79, 170, 170);display: flex; flex-direction: column;"><div data-hh="999">2板<span onclick="sorted(2,this)">净额</span><span onclick="sorted(0,this)">涨幅</span><span onclick="sorted(1,this)">昨换</span><span onclick="sorted(3,this)">竞价</span></div></div>
@@ -129,6 +141,27 @@
                 console.log("AllBanData:",AllBanData)
             }
             
+        })
+        socket.on('plate', (data)=> {
+            // console.log('盘面',data)
+            container = document.getElementById('b0');
+            // stockDiv=data
+            container.innerHTML=data;
+            container.querySelectorAll('tr').forEach(function(row) {
+                row.addEventListener('click', function() {
+                    console.log(row.childNodes[3].innerHTML);
+                    // var va=row.childNodes[3].innerHTML
+                    // 昨天成交额>15亿,昨日大单净额<-1000万,非st,算力
+                    if(row.childNodes[3].innerHTML){
+                        var iframe = document.getElementById('myIframe');
+                        console.log(iframe.src)
+                        iframe.src = 'https://www.iwencai.com/unifiedwap/result?w=昨天成交额>15亿,昨日大单净额<-1000万,非st,'+row.childNodes[3].innerHTML+'&querytype=stock'; // 设置新的src
+                        console.log(iframe.src)
+                    }
+                    
+                    // document.getElementById('myIframe').contentWindow.location.reload(true);
+                });
+            });
         })
         function f1(){
             socket.emit('start_broadcast',{'ban':0})
@@ -200,7 +233,15 @@
                     stockDiv.setAttribute('data-amount',data[d].amount)
                     stockDiv.id = data[d].id;  
                     stockDiv.className = 'stock';
-                    stTitle=`<div ondblclick="dblClickFn('${data[d].id}')" style="cursor: pointer;z-index:999;position: relative;left:45%;color:#eee">${data[d].name}</div>`  
+                    stTitle=`<div ondblclick="dblClickFn('${data[d].id}')" style="cursor: pointer;z-index:999;position: relative;left:30%;color:#eee">${data[d].name}</div>`  
+                    buyDiv=`<div style="font-size: 12px; text-align: left;right: 5px;top:5px;position: absolute;border:solid 1px #4F4F4F;width: 50px;">
+                        <div style="background-color: #6a832a;">
+                            <p>123</p><p>123</p><p>123</p>
+                            </div>
+                            <div style="background-color: #8fc83d;">
+                                <p>123</p><p>123</p><p>123</p>
+                            </div>
+                            </div>`
                     stockDiv.innerHTML =stTitle+`<div style="font-size: 12px; text-align: left; right: 28px;top:30px;position: absolute;color: chartreuse;">${parseInt(data[d].dde/10000)}</br>${parseInt(data[d].changed)}</div> `;  
                     stockDiv.innerHTML += `<div style="position: absolute;bottom: 45px;right: 43px;font-size: 10px;">竞:${(parseInt(data[d].amount))}</br>卖 ${parseInt(data[d].ask)}</br>买 ${parseInt(data[d].bid)}</div><div class="chart" id="${data[d].id}-chart"></div>`;  
                     container.appendChild(stockDiv);
@@ -225,7 +266,33 @@
             alert('购买了',e)
         }
         socket.on('st_data', function(stdata) {
+            // console.log("后端数据：",stdata)
             if(Object.keys(AllBanData).length){
+                
+                //处理tick
+                if(stdata[0].ask){
+                    // console.log(stdata[0])
+                    for(d in stdata){
+                        if((AllBanData[stdata[d].stock]).time.includes((stdata[d]).time)){
+                            // console.log("同时间")
+                            if(AllBanData[stdata[d].stock]['total2']){
+                                AllBanData[stdata[d].stock].volume[AllBanData[stdata[d].stock].price.length-1]=stdata[d].amount*0.0001-AllBanData[stdata[d].stock]['total2']
+                            }
+                            AllBanData[stdata[d].stock].price[AllBanData[stdata[d].stock].price.length-1]=stdata[d].price
+                            
+                            AllBanData[stdata[d].stock]['total1']=stdata[d].amount*0.0001
+                        }else {
+                            if(AllBanData[stdata[d].stock]['total1']){
+                                AllBanData[stdata[d].stock].volume.push(stdata[d].amount*0.0001-AllBanData[stdata[d].stock]['total1'])
+                            }
+                            AllBanData[stdata[d].stock].time.push(stdata[d].time)
+                            AllBanData[stdata[d].stock].price.push(stdata[d].price)
+                            
+                            AllBanData[stdata[d].stock]['total2']=stdata[d].amount*0.0001
+                            // console.log("不同时间")
+                        }
+                    }
+                }else
                 for(d in stdata){
                     if((AllBanData[stdata[d].stock]).time[(AllBanData[stdata[d].stock]).time.length-1]>(stdata[d]).time){
                         socket.emit('msg',{'hisban':0})
@@ -238,7 +305,7 @@
                         else if(AllBanData[stdata[d].stock].price.length<40) maxW=1000
                         else maxW=500
                         if((AllBanData[stdata[d].stock]).time.includes((stdata[d]).time)){
-                           
+                        //    console.log("分钟内")
                             //监控最终位置
                             if(stdata[d].volume-AllBanData[stdata[d].stock].volume[AllBanData[stdata[d].stock].price.length-1]>maxW){
                                 console.log(stdata[d].stock,":大单买入",stdata[d].volume," ",AllBanData[stdata[d].stock].volume[AllBanData[stdata[d].stock].price.length-1])
@@ -253,7 +320,7 @@
                             AllBanData[stdata[d].stock].volume[AllBanData[stdata[d].stock].price.length-1]=stdata[d].volume
                             
                         }else{
-                                //监控最终位置
+                            // console.log("分钟外")
                             if(stdata[d].volume>maxW){
                                 console.log(stdata[d].stock,":大单买入",stdata[d].volume," ",AllBanData[stdata[d].stock].volume[AllBanData[stdata[d].stock].price.length-1])
                                 var element = document.getElementById(stdata[d].stock);

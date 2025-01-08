@@ -33,6 +33,14 @@ const timerPool = {
         clients: new Set(), // Track connected clients for this timer  
         intervalId: null, // Store the interval ID  
     },  
+    stockTick: {  
+        clients: new Set(), // Track connected clients for this timer  
+        intervalId: null, // Store the interval ID  
+    },  
+    stockPlate: {  
+        clients: new Set(), // Track connected clients for this timer  
+        intervalId: null, // Store the interval ID  
+    },  
     broadcast: {  
         intervalId: null, // Store the broadcast interval ID  
     },  
@@ -61,6 +69,14 @@ io.on('connection',(socket)=>{
         // Stop timer if no clients are left  
         if (timerPool.stockData.clients.size === 0) {  
             stopStockDataTimer();  
+        }  
+        // 关闭tick
+        if (timerPool.stockTick.clients.size === 0) {  
+            stopStockTickTimer();  
+        }  
+        // 关闭tick
+        if (timerPool.stockPlate.clients.size === 0) {  
+            stopStockPlateTimer();  
         }  
     })
     // Handle broadcasting message request  
@@ -98,6 +114,9 @@ io.on('connection',(socket)=>{
         }else if('msgToOne' in data){
             sendMessageToClient(clientIds[0],'这是个人信息')
             sendMessageToClient(clientIds[1],'这是个人信息')
+        }else if('tick' in data){
+            
+
         }
     })
 })
@@ -126,12 +145,12 @@ function sendMessageToAll(senderSocket, message) {
 const results = [];
 // const stream=fs.createReadStream('D:/software/DTQMT/INFO/HIS/1226/ban1.csv') // 替换为你的 CSV 文件路径
 // 检查文件是否存在
-// ban_path='D:/software/DTQMT/INFO/ban1.csv'
-ban_path='D:/software/DTQMT/INFO/HIS/1226/ban1.csv'
+ban_path='D:/software/DTQMT/INFO/ban1.csv'
+// ban_path='D:/software/DTQMT/INFO/HIS/16/ban1.csv'
 fs.access(ban_path, fs.constants.F_OK, (err) => {
     if (err) {
         console.error(`${ban_path} does not exist`);
-        ban_path='D:/software/DTQMT/INFO/HIS/1231/ban1.csv'
+        ban_path='D:/software/DTQMT/INFO/HIS/16/ban1.csv'
     //   return;
     }
     const stream=fs.createReadStream(ban_path) // 替换为你的 CSV 文件路径
@@ -191,7 +210,7 @@ async function getRedisValue(key) {
 
 
 function sendStockAllData() {
-    getRedisValue('my_dict').then(val=>{
+    getRedisValue('min_dict').then(val=>{
         data=JSON.parse(val)
         if(data){
             var stdatas=[]
@@ -244,8 +263,47 @@ function sendStockAllData() {
     }   
     )
  }
+ function sendStockTickData() {
+    getRedisValue('tick_dict').then(val=>{
+        data=JSON.parse(val)
+        if(data){
+            var stdatas=[]
+            for(d in data){
+                // console.log((JSON.parse(data[d][Object.keys(data[d])[0]])).length)
+                dt=data[d]//单项
+                key=Object.keys(data[d])[0]// 个股名称
+                vals=JSON.parse(dt[key])[0]
+                try {
+                // console.log("名称：",key," val: ",vals)
+          
+                    stdatas.push({
+                        stock: key,  
+                        ask: vals.askVol,  
+                        bid: vals.bidVol,
+                        amount: parseInt(vals.amount),    
+                        price: ((vals.lastPrice-vals.lastClose)/vals.lastClose*100).toFixed(2),  
+                        time:vals.stime.slice(8,12)
+                    })
+                }catch{
+                    continue
+                }
+           
+                // stdatas.push([
+                //     key,
+                //     vals[0].open, 
+                //     vals[0].preClose,
+                //     parseInt(vals[vals.length-1].volume*vals[vals.length-1].close*0.01),
+                //     ((vals[vals.length-1].close-vals[0].preClose)/vals[0].preClose*100).toFixed(2),
+                //     vals[vals.length-1].stime.slice(8,12)
+                // ])
+            }
+            io.emit('st_data',stdatas)
+        } 
+    }   
+    )
+ }
  function sendStockLastData() {
-    getRedisValue('my_dict').then(val=>{
+    getRedisValue('min_dict').then(val=>{
         data=JSON.parse(val)
         if(data){
             var stdatas=[]
@@ -289,6 +347,17 @@ function sendStockAllData() {
     }   
     )
  }
+ 
+ function sendStockPlateData() {
+    getRedisValue('plate').then(val=>{
+        data=JSON.parse(val)
+        // console.log(data)
+        if(data){
+            io.emit('plate',data)
+        } 
+    }   
+    )
+ }
 // Function to send broadcast message  
 function broadcastMessage() {  
     const message = '这是广播消息: 当前时间是 ' + new Date().toLocaleTimeString();  
@@ -297,13 +366,39 @@ function broadcastMessage() {
 
 // Start stock data timer  
 function startStockDataTimer() {  
-    timerPool.stockData.intervalId = setInterval(sendStockLastData, 1000); // 每2秒发送一次数据  
+    startStockPlateTimer();
+    sendStockLastData()
+    startStockTickTimer();//启动tick数据
+
+    timerPool.stockData.intervalId = setInterval(sendStockLastData, 6000); // 每2秒发送一次数据  
 }  
 
 // Stop stock data timer  
 function stopStockDataTimer() {  
     clearInterval(timerPool.stockData.intervalId); // 停止定时器  
     timerPool.stockData.intervalId = null; // 重置intervalId  
+}  
+
+// Start stock data timer  
+function startStockTickTimer() {  
+    timerPool.stockTick.intervalId = setInterval(sendStockTickData, 3000); // 每2秒发送一次数据  
+}  
+
+// Stop stock data timer  
+function stopStockTickTimer() {  
+    clearInterval(timerPool.stockData.intervalId); // 停止定时器  
+    timerPool.stockTick.intervalId = null; // 重置intervalId  
+}  
+// Start stock data timer  
+function startStockPlateTimer() {
+    sendStockPlateData()
+    timerPool.stockPlate.intervalId = setInterval(sendStockPlateData, 30000); // 每2秒发送一次数据  
+}  
+
+// Stop stock data timer  
+function stopStockPlateTimer() {  
+    clearInterval(timerPool.stockPlate.intervalId); // 停止定时器  
+    timerPool.stockPlate.intervalId = null; // 重置intervalId  
 }  
 
 // Start broadcast timer  
