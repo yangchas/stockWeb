@@ -69,6 +69,16 @@
             <!-- </br> -->
                 <div class="area-ban" style="display: flex;">
                     <div  style="width: 40%;background-color: rgb(122, 144, 144);display: flex; flex-direction: column;">
+                    <div id="have" style="width: 80%;height: 300px;background-color: bisque;">
+                        
+                        <table border="1">
+                        <tbody id="haved">
+
+                        </tbody>
+                        </table>
+                      
+                      
+                    </div>
                     <div id="b0">
 
                     </div>
@@ -122,6 +132,7 @@
         // })
         // 请求分钟历史行情
         socket.emit('msg',{'hisban':0})
+        socket.emit('msg',{'haved':0})
         socket.on('msg', (data)=> {
             console.log('接受到服务器消息：',data)
             if('ban' in data){
@@ -139,7 +150,30 @@
                     AllBanData[data.hisban[d].stock]=data.hisban[d]
                 }
                 console.log("AllBanData:",AllBanData)
+            }else if('haved' in data){
+                // console.log("获取到持仓")
+                // AllBanData=data.hisban
+                // AllBanData=[{d.stock:d} for(d in AllBanData)
+                // for(d in data.hisban){
+                //     AllBanData[data.hisban[d].stock]=data.hisban[d]
+                // }
+                console.log("持仓:",data)
+                havedE=document.getElementById("haved")
+                for(var d in data.haved){
+                    console.log(data.haved[d])
+                    haveDiv=`<tr>
+                                <td>${data.haved[d][0]}</td>
+                                <td>${data.haved[d][1]}</td>
+                                <td>${parseInt(data.haved[d][2])}</td>
+                                <td>${parseInt(data.haved[d][3])}</td>
+                                <td width='40px' style="cursor: pointer;text-align:center;color: #eee;background-color:#9a44c7" onclick="mai('${d}')">卖</td>
+                                <td width='40px' style="cursor: pointer;text-align:center;color: #eee;background-color:#9a44c7" onclick="canc()">撤单</td>
+                            </tr>`
+                    havedE.innerHTML += haveDiv
+                }
+             
             }
+            
             
         })
         socket.on('plate', (data)=> {
@@ -177,6 +211,14 @@
         }
         function f5(){
             socket.emit('msg',{'msgToOne':0})
+        }
+        function mai(id){
+            socket.emit('msg',{'mai':id})
+            alert(id)
+        }
+        function canc(){
+            socket.emit('msg',{'canc':1})
+            alert('撤单')
         }
         function sorted(e,v){
             sortType=e
@@ -233,7 +275,7 @@
                     stockDiv.setAttribute('data-amount',data[d].amount)
                     stockDiv.id = data[d].id;  
                     stockDiv.className = 'stock';
-                    stTitle=`<div ondblclick="dblClickFn('${data[d].id}')" style="cursor: pointer;z-index:999;position: relative;left:30%;color:#eee">${data[d].name}</div>`  
+                    stTitle=`<div ondblclick="dblClickFn('${data[d].id}')" style="cursor: pointer;z-index:999;position: relative;left:30%;color:#eee">${data[d].name}<span>${parseInt((data[d].current_price-data[d].pre_price)/data[d].pre_price*100)}</span></div>`  
                     buyDiv=`<div style="font-size: 12px; text-align: left;right: 5px;top:5px;position: absolute;border:solid 1px #4F4F4F;width: 50px;">
                         <div style="background-color: #6a832a;">
                             <p>123</p><p>123</p><p>123</p>

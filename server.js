@@ -109,6 +109,12 @@ io.on('connection',(socket)=>{
         }else if('buy' in data){
             console.log('购买',data['buy'])
             client.set('buy',data['buy']);
+        }else if('mai' in data){
+            console.log('卖',data['mai'])
+            client.set('mai',data['mai']);
+        }else if('canc' in data){
+            console.log('撤单',data['canc'])
+            client.set('canc',data['canc']);
         }else if('msgToAll' in data){
             sendMessageToAll(socket,'大家好，我是jj')
         }else if('msgToOne' in data){
@@ -116,6 +122,13 @@ io.on('connection',(socket)=>{
             sendMessageToClient(clientIds[1],'这是个人信息')
         }else if('tick' in data){
             
+
+        }else if('haved' in data){
+            getRedisValue('haved').then(val=>{
+                data=JSON.parse(val) 
+                // console.log(data)
+                io.emit('msg',{'haved':data})
+            })
 
         }
     })
@@ -267,26 +280,48 @@ function sendStockAllData() {
     getRedisValue('tick_dict').then(val=>{
         data=JSON.parse(val)
         if(data){
+           
             var stdatas=[]
             for(d in data){
+                
                 // console.log((JSON.parse(data[d][Object.keys(data[d])[0]])).length)
                 dt=data[d]//单项
-                key=Object.keys(data[d])[0]// 个股名称
-                vals=JSON.parse(dt[key])[0]
-                try {
-                // console.log("名称：",key," val: ",vals)
-          
-                    stdatas.push({
-                        stock: key,  
-                        ask: vals.askVol,  
-                        bid: vals.bidVol,
-                        amount: parseInt(vals.amount),    
-                        price: ((vals.lastPrice-vals.lastClose)/vals.lastClose*100).toFixed(2),  
-                        time:vals.stime.slice(8,12)
-                    })
-                }catch{
-                    continue
-                }
+                // console.log(dt)
+                // key=d//Object.keys(data[d])[0]// 个股名称
+                // vals=JSON.parse(dt[key])[0]
+                // try {
+                    // console.log("名称：",d," val: ",dt)
+                    if(dt.timetag){
+                        var stime=dt.timetag.slice(9,11)+dt.timetag.slice(12,14)
+                        stdatas.push({
+                            stock: d,  
+                            ask: dt.askVol,  
+                            bid: dt.bidVol,
+                            amount: parseInt(dt.amount),    
+                            price: ((dt.lastPrice-dt.lastClose)/dt.lastClose*100).toFixed(2),  
+                            time:stime
+                        })
+                    }else{
+
+                        key=Object.keys(data[d])[0]// 个股名称
+                        vals=JSON.parse(dt[key])[0]
+                        // try {
+                        // console.log("名称：",key," val: ",vals)
+                
+                        stdatas.push({
+                            stock: key,  
+                            ask: vals.askVol,  
+                            bid: vals.bidVol,
+                            amount: parseInt(vals.amount),    
+                            price: ((vals.lastPrice-vals.lastClose)/vals.lastClose*100).toFixed(2),  
+                            time:vals.stime.slice(8,12)
+                        })
+                    }
+
+                   
+                // }catch{
+                //     continue
+                // }
            
                 // stdatas.push([
                 //     key,
@@ -313,16 +348,16 @@ function sendStockAllData() {
                 key=Object.keys(data[d])[0]// 个股名称
                 vals=JSON.parse(dt[key])
                 // console.log("名称：",key," val: ",vals[0])
-                if(vals[0].lastPrice){
-                    stdatas.push({
-                        stock: key,  
-                        open: vals[0].open,  
-                        preClose: vals[0].lastClose,
-                        volume: parseInt((vals[vals.length-1].amount-vals[vals.length-2].amount)*0.0001),    
-                        price: ((vals[vals.length-1].lastPrice-vals[0].lastClose)/vals[0].lastClose*100).toFixed(2),  
-                        time:vals[vals.length-1].stime.slice(8,12)
-                    })
-                }else{
+                // if(vals[0].lastPrice){
+                //     stdatas.push({
+                //         stock: key,  
+                //         open: vals[0].open,  
+                //         preClose: vals[0].lastClose,
+                //         volume: parseInt((vals[vals.length-1].amount-vals[vals.length-2].amount)*0.0001),    
+                //         price: ((vals[vals.length-1].lastPrice-vals[0].lastClose)/vals[0].lastClose*100).toFixed(2),  
+                //         time:vals[vals.length-1].stime.slice(8,12)
+                //     })
+                // }else{
                     stdatas.push({
                         stock: key,  
                         open: vals[0].open,  
@@ -331,7 +366,7 @@ function sendStockAllData() {
                         price: ((vals[vals.length-1].close-vals[0].preClose)/vals[0].preClose*100).toFixed(2),  
                         time:vals[vals.length-1].stime.slice(8,12)
                     })
-                }
+                // }
            
                 // stdatas.push([
                 //     key,
@@ -370,7 +405,7 @@ function startStockDataTimer() {
     sendStockLastData()
     startStockTickTimer();//启动tick数据
 
-    timerPool.stockData.intervalId = setInterval(sendStockLastData, 6000); // 每2秒发送一次数据  
+    timerPool.stockData.intervalId = setInterval(sendStockLastData, 30000); // 每2秒发送一次数据  
 }  
 
 // Stop stock data timer  
