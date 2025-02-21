@@ -1,0 +1,114 @@
+<!DOCTYPE html>  
+<html lang="en">  
+<head>  
+    <meta charset="UTF-8">  
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">  
+    <title>股票知识图谱</title>  
+    <script type="text/javascript" src="https://unpkg.com/vis-network@9.1.0/standalone/umd/vis-network.min.js"></script>  
+    <link href="https://unpkg.com/vis-network@9.1.0/styles/vis-network.css" rel="stylesheet" type="text/css" />  
+</head>  
+<body>  
+    <h1>创建股票节点</h1>  
+    <form id="stock-form">  
+        <input type="text" id="name" placeholder="股票名称" required>  
+        <input type="number" id="market_cap" placeholder="市值" required>  
+        <input type="text" id="sector" placeholder="板块" required>  
+        <button type="submit">创建股票</button>  
+    </form>  
+
+    <h1>创建新闻节点</h1>  
+    <form id="news-form">  
+        <input type="text" id="newsTitle" placeholder="新闻标题" required>  
+        <textarea id="content" placeholder="新闻内容" required></textarea>  
+        <button type="submit">创建新闻</button>  
+    </form>  
+
+    <h1>创建新闻关系</h1>  
+    <form id="relationship-form">  
+        <input type="text" id="stockName" placeholder="股票名称" required>  
+        <input type="text" id="relationNewsTitle" placeholder="新闻标题" required>  
+        <button type="submit">创建关系</button>  
+    </form>  
+
+    <h1>股票与新闻关系网络图</h1>  
+    <div id="network" style="width: 100%; height: 500px; border: 1px solid lightgray;"></div>  
+
+    <script>  
+        document.getElementById('stock-form').addEventListener('submit', async (e) => {  
+            e.preventDefault();  
+            const name = document.getElementById('name').value;  
+            const marketCap = document.getElementById('market_cap').value;  
+            const sector = document.getElementById('sector').value;  
+
+            const response = await fetch('/api/stocks', {  
+                method: 'POST',  
+                headers: { 'Content-Type': 'application/json' },  
+                body: JSON.stringify({ name, market_cap: parseFloat(marketCap), sector })  
+            });  
+            if (response.ok) {  
+                alert('股票节点已创建！');  
+                loadGraph();  // 创建后加载图形数据  
+            } else {  
+                alert('创建股票节点失败！');  
+            }  
+        });  
+
+        document.getElementById('news-form').addEventListener('submit', async (e) => {  
+            e.preventDefault();  
+            const title = document.getElementById('newsTitle').value;  
+            const content = document.getElementById('content').value;  
+
+            const response = await fetch('/api/news', {  
+                method: 'POST',  
+                headers: { 'Content-Type': 'application/json' },  
+                body: JSON.stringify({ title, content })  
+            });  
+            if (response.ok) {  
+                alert('新闻节点已创建！');  
+                loadGraph();  // 创建后加载图形数据  
+            } else {  
+                alert('创建新闻节点失败！');  
+            }  
+        });  
+
+        document.getElementById('relationship-form').addEventListener('submit', async (e) => {  
+            e.preventDefault();  
+            const stockName = document.getElementById('stockName').value;  
+            const relationNewsTitle = document.getElementById('relationNewsTitle').value;  
+
+            const response = await fetch('/api/relationships', {  
+                method: 'POST',  
+                headers: { 'Content-Type': 'application/json' },  
+                body: JSON.stringify({ stockName, newsTitle: relationNewsTitle })  
+            });  
+            if (response.ok) {  
+                alert('关系已创建！');  
+                loadGraph();  // 创建后加载图形数据  
+            } else {  
+                alert('创建关系失败！');  
+            }  
+        });  
+
+        // 加载图形数据  
+        async function loadGraph() {  
+            const response = await fetch('/api/graph');  
+            if (response.ok) {  
+                const graphData = await response.json();  
+                uniqueArr = [...new Set(graphData.nodes.map(item => JSON.stringify(item)))].map(item => JSON.parse(item))
+                const nodes = new vis.DataSet(uniqueArr);  
+                const edges = new vis.DataSet(graphData.edges);  
+
+                const container = document.getElementById('network');  
+                const data = { nodes, edges };  
+                const options = {};  
+                const network = new vis.Network(container, data, options);  
+            } else {  
+                alert('加载图形数据失败！');  
+            }  
+        }  
+
+        // 页面加载时获取图形数据  
+        loadGraph();  
+    </script>  
+</body>  
+</html>

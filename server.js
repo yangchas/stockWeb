@@ -13,17 +13,20 @@ const fs = require('fs');
 const app = express();  
 const server = http.createServer(app);  
 // const io = socketIo(server);  
-const io = socketIo(server, {  
-    cors: {  
-      origin: '*', // 根据需要进行更改  
-      methods: ['GET', 'POST'],  
-    },  
-    compress: true, // 启用数据压缩  
-    pingInterval: 60000, // 每60秒发送一次Ping  
-    pingTimeout: 25000,// 如果在25秒内没有收到Pong，则认为连接失败  
-  });  
+const io = socketIo(server
+    // , {  
+    // cors: {  
+    //   origin: '*', // 根据需要进行更改  
+    //   methods: ['GET', 'POST'],  
+    // },  
+    // compress: true, // 启用数据压缩  
+    // pingInterval: 60000, // 每60秒发送一次Ping  
+    // pingTimeout: 25000,// 如果在25秒内没有收到Pong，则认为连接失败  
+//   }
+);  
 app.use(compression());
 const bans_info=[]
+open_plate={};
 let clientIds=[]
 let connectedClients = 0;
 // 客户端池  
@@ -44,6 +47,10 @@ const timerPool = {
     broadcast: {  
         intervalId: null, // Store the broadcast interval ID  
     },  
+    stockOpend: {  
+        clients: new Set(),
+        intervalId: null, // Store the broadcast interval ID  
+    },  
 };  
 io.on('connection',(socket)=>{
     const clientId = uuidv4(); 
@@ -57,7 +64,7 @@ io.on('connection',(socket)=>{
     // Start timer if no timer is running  
     if (!timerPool.stockData.intervalId) {  
         startStockDataTimer();  
-    }  
+    }
     socket.on('disconnect',()=>{
         console.log(`客户端已断开: ${clientId}`);  
         // 从池中移除客户端  
@@ -77,7 +84,10 @@ io.on('connection',(socket)=>{
         // 关闭tick
         if (timerPool.stockPlate.clients.size === 0) {  
             stopStockPlateTimer();  
-        }  
+        }  // 关闭tick
+        if (timerPool.stockOpend.clients.size === 0) {  
+            stopStockOpendTimer()
+        }
     })
     // Handle broadcasting message request  
     socket.on('start_broadcast', () => {  
@@ -103,6 +113,9 @@ io.on('connection',(socket)=>{
         if('ban' in data){
             console.log('发送连板',bans_info.length)
             socket.emit('msg',{'ban':bans_info})
+        }else if('open_plate' in data){
+            console.log('发送竞价强度')
+            socket.emit('msg',{'open_plate':open_plate})
         }else if('hisban' in data){
             console.log('发送连板历史行情',bans_info.length)
             sendStockAllData()
@@ -129,6 +142,22 @@ io.on('connection',(socket)=>{
                 // console.log(data)
                 io.emit('msg',{'haved':data})
             })
+
+        }else if('opend' in data){
+            startStockOpendTimer()
+            // getRedisValue('open_dict').then(val=>{
+            //     data=JSON.parse(val) 
+            //     // console.log(data)
+            //     io.emit('msg',{'opend':data})
+            // })
+
+        }else if('opendcls' in data){
+            stopStockOpendTimer()
+            // getRedisValue('open_dict').then(val=>{
+            //     data=JSON.parse(val) 
+            //     // console.log(data)
+            //     io.emit('msg',{'opend':data})
+            // })
 
         }
     })
@@ -163,7 +192,7 @@ ban_path='D:/software/DTQMT/INFO/ban1.csv'
 fs.access(ban_path, fs.constants.F_OK, (err) => {
     if (err) {
         console.error(`${ban_path} does not exist`);
-        ban_path='D:/software/DTQMT/INFO/HIS/16/ban1.csv'
+        ban_path='D:/software/DTQMT/INFO/HIS/124/ban1.csv'
     //   return;
     }
     const stream=fs.createReadStream(ban_path) // 替换为你的 CSV 文件路径
@@ -189,9 +218,16 @@ fs.access(ban_path, fs.constants.F_OK, (err) => {
                 'ask':ds[d]['ask'],
                 'pre_price':ds[d]['pre_price'],
                 'current_price':ds[d]['current_price'],
+                'plate':ds[d]['板块'],
             }
             bans_info.push(val)
         }
+        bans_info.forEach(item=>{
+            if (!open_plate.hasOwnProperty(item.plate)) {
+                open_plate[item.plate]=parseInt(item.bid);
+            }
+            open_plate[item.plate]+=parseInt(item.bid);
+        })
         console.log('获取连板信息:',bans_info.length)
         
     });
@@ -340,7 +376,7 @@ function sendStockAllData() {
  function sendStockLastData() {
     getRedisValue('min_dict').then(val=>{
         data=JSON.parse(val)
-        if(data){
+        if(Object.keys(data).length){
             var stdatas=[]
             for(d in data){
                 // console.log((JSON.parse(data[d][Object.keys(data[d])[0]])).length)
@@ -393,6 +429,13 @@ function sendStockAllData() {
     }   
     )
  }
+ function sendStockOpendData(){
+      getRedisValue('open_dict').then(val=>{
+                data=JSON.parse(val) 
+                // console.log(data)
+                io.emit('msg',{'opend':data})
+            })
+ }
 // Function to send broadcast message  
 function broadcastMessage() {  
     const message = '这是广播消息: 当前时间是 ' + new Date().toLocaleTimeString();  
@@ -435,7 +478,17 @@ function stopStockPlateTimer() {
     clearInterval(timerPool.stockPlate.intervalId); // 停止定时器  
     timerPool.stockPlate.intervalId = null; // 重置intervalId  
 }  
+// Start stock data timer  
+function startStockOpendTimer() {
+    sendStockOpendData()
+    timerPool.stockOpend.intervalId = setInterval(sendStockOpendData, 30000); // 每2秒发送一次数据  
+}  
 
+// Stop stock data timer  
+function stopStockOpendTimer() {  
+    clearInterval(timerPool.stockOpend.intervalId); // 停止定时器  
+    timerPool.stockOpend.intervalId = null; // 重置intervalId  
+}  
 // Start broadcast timer  
 function startBroadcastTimer() {  
     timerPool.broadcast.intervalId = setInterval(broadcastMessage, 5000); // 每5秒发送一次广播消息  

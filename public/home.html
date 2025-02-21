@@ -53,12 +53,17 @@
             <div style="margin: 1%;background-color: rgb(175, 188, 161);height: 98%;">
                 <div class="area-top" style="display: flex;height: 10%;margin: 5px 5px;">
                     <div style="width: 25%;background-color: rgb(122, 144, 144);">
-                        <h6>推荐买入</h6>
-                        <div id="buylist">
+                        <!-- <h6>推荐买入</h6> -->
+                        <div style="display: flex; flex-direction: column;" id="buylist">
 
                         </div>
                     </div>
-                    <div style="width: 25%;background-color: rgb(79, 170, 170);">连板</div>
+                    <div style="width: 25%;background-color: rgb(79, 170, 170);">
+                       <h4>竞价</h4>
+                       <div style="display: flex; flex-direction: column;font-size: 14px;" id="open_plate">
+
+                       </div>
+                    </div>
                     <div style="width: 25%;background-color: rgb(81, 196, 171);">板块</div>
                     <div style="width: 25%;background-color: rgb(96, 159, 76);">资金</div>
                     <div style="width: 25%;background-color: rgb(77, 127, 168);">综合分数</div>
@@ -69,7 +74,7 @@
             <!-- </br> -->
                 <div class="area-ban" style="display: flex;">
                     <div  style="width: 40%;background-color: rgb(122, 144, 144);display: flex; flex-direction: column;">
-                    <div id="have" style="width: 80%;height: 300px;background-color: bisque;">
+                    <div id="have" style="width: 80%;height: 200px;background-color: bisque;">
                         
                         <table border="1">
                         <tbody id="haved">
@@ -114,16 +119,20 @@
     </div> 
     <script>  
         // const socket = io();  
-        const socket = io('http://localhost:3000', {  
-            transports: ['websocket'], // 选择传输方式  
-            compress: true, // 启用数据压缩 
-            pingInterval: 60000, // 每60秒发送一次Ping  
-            pingTimeout: 25000,  // Ping超时 
-        });  
+        const socket = io('http://localhost:3000'
+        // , 
+        // {  
+        //     transports: ['websocket'], // 选择传输方式  
+        //     compress: true, // 启用数据压缩 
+        //     pingInterval: 60000, // 每60秒发送一次Ping  
+        //     pingTimeout: 25000,  // Ping超时 
+        // }
+    );  
         const stockDataMap = {};  
         var ban={}
         var AllBanData={}
         sortType=0
+        var openF=0
         //请求连板信息 用于初始化dom节点
         socket.emit('msg',{'ban':0})
         // socket.on('ban', function(data) {
@@ -133,6 +142,17 @@
         // 请求分钟历史行情
         socket.emit('msg',{'hisban':0})
         socket.emit('msg',{'haved':0})
+        socket.emit('msg',{'open_plate':0})
+        now1=new Date();
+        targetTime1 = new Date();
+        targetTime2 = new Date();
+        targetTime1.setHours(9, 30, 0, 0);
+        targetTime2.setHours(9, 15, 0, 0);
+        // if(now1 < targetTime1){
+        if(!openF){
+           socket.emit('msg',{'opend':0})
+           openF=1
+        }
         socket.on('msg', (data)=> {
             console.log('接受到服务器消息：',data)
             if('ban' in data){
@@ -142,6 +162,14 @@
                 }
                 // ban=data['ban']
                 deal(data['ban'])
+            }else if('open_plate' in data){
+                console.log(data['open_plate'])
+                var openPlate=document.getElementById('open_plate')
+                for(d in data['open_plate']){
+                    stTitle=`<p style='order:-${data['open_plate'][d]}'>${d}: ${data['open_plate'][d]}</p>`
+                    openPlate.innerHTML+=stTitle;
+                }
+           
             }else if('hisban' in data){
                 console.log("获取到连板当天历史行情")
                 // AllBanData=data.hisban
@@ -149,7 +177,103 @@
                 for(d in data.hisban){
                     AllBanData[data.hisban[d].stock]=data.hisban[d]
                 }
-                console.log("AllBanData:",AllBanData)
+            }else if('opend' in data){
+                now2=new Date();
+                if(now2>targetTime1 ||now2<targetTime2){
+                    console.log("停止获取竞价")
+                    socket.emit('msg',{'opendcls':0})
+                    // return
+                }
+                console.log("获取到连板当天竞价")
+
+                // AllBanData=data.hisban
+                // AllBanData=[{d.stock:d} for(d in AllBanData)
+                if(Object.keys(AllBanData).length){
+                    for(d in data.opend){
+                        // AllBanData[data.hisban[d].stock]=data.hisban[d]
+                        // AllBanData[stdata[d].stock].price
+
+                    
+                        try {
+                            
+                        
+                        for(k in data.opend[d]){
+                            var arrTime=[]
+                            var arrVol=[]
+                            var arrPri=[]
+                            var arrBid=[]
+                            var arrAsk=[]
+                            for(v in k){
+                                if(!data.opend[d][k][v]){
+                                    continue
+                                }
+                                // console.log(k,v,d, data.opend[d],data.opend[d][k],data.opend[d][k][v])
+                                arrTime.push(data.opend[d][k][v]["time"])
+                                arrVol.push(data.opend[d][k][v]["amount"])
+                                arrBid.push(data.opend[d][k][v]["bid"]*0.01)
+                                arrAsk.push(data.opend[d][k][v]["ask"]*0.01)
+                                arrPri.push(parseInt((data.opend[d][k][v]["lastPrice"]-data.opend[d][k][v]["lastClose"])/data.opend[d][k][v]["lastClose"]*1000)*0.1)
+                            }
+                            arrVol=arrVol.slice(1).map((num, index) => num - arrVol[index]);
+                            // if(Object.keys(AllBanData).length){
+                            AllBanData[k].time=arrTime.concat(AllBanData[k].time)//['0915','0916','0917','0918']//arrTime
+                            AllBanData[k].volume=arrVol.concat(AllBanData[k].volume)//[...arrVol, ...arrVol, ...arrVol, ...arrVol]
+                            AllBanData[k].price=arrPri.concat(AllBanData[k].price)//[...arrPri, ...arrPri, ...arrPri, ...arrPri]
+                            AllBanData[k].asks=arrAsk//[622,458,398,358]//[...arrAsk, ...arrAsk, ...arrAsk, ...arrAsk]
+                            AllBanData[k].bids=arrBid//[5022,258,698,158]//[...arrBid, ...arrBid, ...arrBid, ...arrBid]
+      
+                        }
+                    } catch (error) {
+                            console.log(error)
+                        }
+                    }
+                            // AllBanData[k].time.push(stdata[d].time)
+                }else{
+                    
+                    for(d in data.opend){
+                        try {
+                        for(k in data.opend[d]){
+                            var stdatas={}
+                            var arrTime=[]
+                            var arrVol=[]
+                            var arrPri=[]
+                            var arrBid=[]
+                            var arrAsk=[]
+                            for(v in k){
+                                arrTime.push(data.opend[d][k][v]["time"])
+                                arrVol.push(data.opend[d][k][v]["amount"])
+                                // arrPri.push(data.opend[d][k][v]["lastPrice"])
+                                arrPri.push(parseInt((data.opend[d][k][v]["lastPrice"]-data.opend[d][k][v]["lastClose"])/data.opend[d][k][v]["lastClose"]*1000)*0.1)
+                                arrBid.push(data.opend[d][k][v]["bid"]*0.01)
+                                arrAsk.push(data.opend[d][k][v]["ask"]*0.01)
+                            }
+                            arrVol=arrVol.slice(1).map((num, index) => num - arrVol[index]);
+                            // if(Object.keys(AllBanData).length){
+                            
+
+                            stdatas={
+                                stock: k,  
+                                open: arrPri[0],  
+                                preClose: data.opend[d][k][0]["lastClose"],  
+                                volume: arrVol,  
+                                price: arrPri,  
+                                time:arrTime,
+                                asks:arrAsk,
+                                bids:arrBid
+                            }
+                            AllBanData[k]=stdatas
+                            // console.log(data.opend[d][k])
+                            
+                            // }
+                        }
+                    } catch (error) {
+                            
+                        }
+                    }
+                    
+                }
+                draw()  
+                // console.log("AllBanData:",AllBanData)
             }else if('haved' in data){
                 // console.log("获取到持仓")
                 // AllBanData=data.hisban
@@ -197,6 +321,387 @@
                 });
             });
         })
+        
+        // 接收客户端唯一 ID  
+        socket.on('client_id', (data) => {  
+            console.log('您的客户端 ID:', data.id);  
+        });  
+        function deal(data){
+            for(d in data){
+                // if(data[d].id!="600397.SH")
+                //     continue
+                if(data[d].bans>5)
+                    container = document.getElementById('b5');
+                else
+                    container = document.getElementById(`b${data[d].bans}`);
+                let stockDiv = document.getElementById(data[d].id);
+                if (!stockDiv) {  
+                    stockDiv = document.createElement('div');  
+                    stockDiv.setAttribute('data-hh',0)
+                    stockDiv.setAttribute('data-dde',data[d].dde)
+                    stockDiv.setAttribute('data-changed',data[d].changed)
+                    stockDiv.setAttribute('data-amount',data[d].amount)
+                    stockDiv.id = data[d].id;  
+                    stockDiv.className = 'stock';
+                    stTitle=`<div ondblclick="dblClickFn('${data[d].id}')" style="cursor: pointer;z-index:999;position: relative;left:30%;color:#eee">${data[d].name}<span>${parseInt((data[d].current_price-data[d].pre_price)/data[d].pre_price*100)}</span><span style="font-size:12px;margin:0">${data[d].plate}</span></div>`  
+                    buyDiv=`<div style="font-size: 12px; text-align: left;right: 5px;top:5px;position: absolute;border:solid 1px #4F4F4F;width: 50px;">
+                        <div style="background-color: #6a832a;">
+                            <p>123</p><p>123</p><p>123</p>
+                            </div>
+                            <div style="background-color: #8fc83d;">
+                                <p>123</p><p>123</p><p>123</p>
+                            </div>
+                            </div>`
+                    stockDiv.innerHTML =stTitle+`<div style="font-size: 12px; text-align: left; right: 28px;top:30px;position: absolute;color: chartreuse;">${parseInt(data[d].dde/10000)}</br>${parseInt(data[d].changed)}</div> `;  
+                    stockDiv.innerHTML += `<div style="position: absolute;bottom: 45px;right: 43px;font-size: 10px;">竞:${(parseInt(data[d].amount))}</br>卖 ${parseInt(data[d].ask)}</br>买 ${parseInt(data[d].bid)}</div><div class="chart" id="${data[d].id}-chart"></div>`;  
+                    container.appendChild(stockDiv);
+                    // console.log("sdsfewf",AllBanData)
+                    if(Object.keys(AllBanData).length){
+                        AllBanData[data[d].id]['amount']=data[d].amount
+                        AllBanData[data[d].id]['ask']=data[d].ask
+                        AllBanData[data[d].id]['bid']=data[d].bid
+                    }
+                    if(((data[d].changed > 8 && data[d].dde<0) && data[d].pre_price < data[d].current_price)||
+                    data[d].changed>20 && data[d].amount>5000 && data[d].pre_price*0.93 > data[d].current_price
+                    ){
+                        console.log("超预期",data[d].name)
+                        var buyD=document.getElementById('buylist')
+                        buyD.innerHTML+=stTitle;
+                    }
+                }
+            }
+        }
+        function dblClickFn(e){
+            socket.emit('msg',{'buy':e})
+            alert('购买了',e)
+        }
+        socket.on('st_data', function(stdata) {
+            // console.log("后端数据：",stdata)
+            now=new Date();
+            targetTime = new Date();
+            targetTime.setHours(9, 30, 0, 0);
+            targetTime1 = new Date();
+            targetTime1.setHours(9, 31, 0, 0);
+            // targetTime.setHours(1, 0, 0, 0);
+            // if(now<targetTime){
+            //     return
+            // }
+            if(Object.keys(AllBanData).length>5){
+                
+                //处理tick
+                if(stdata[0].ask){
+                    // console.log(stdata[0])
+                    for(d in stdata){
+                        if((AllBanData[stdata[d].stock]).time.includes((stdata[d]).time)){
+                            // console.log("同时间")
+                            if(AllBanData[stdata[d].stock]['total2']){
+                                AllBanData[stdata[d].stock].volume[AllBanData[stdata[d].stock].price.length-1]=stdata[d].amount*0.0001-AllBanData[stdata[d].stock]['total2']
+                            }
+                            AllBanData[stdata[d].stock].price[AllBanData[stdata[d].stock].price.length-1]=stdata[d].price
+                            
+                            AllBanData[stdata[d].stock]['total1']=stdata[d].amount*0.0001
+                        }else {
+                            if(AllBanData[stdata[d].stock]['total1']){
+                                AllBanData[stdata[d].stock].volume.push(stdata[d].amount*0.0001-AllBanData[stdata[d].stock]['total1'])
+                            }
+                            AllBanData[stdata[d].stock].time.push(stdata[d].time)
+                            AllBanData[stdata[d].stock].price.push(stdata[d].price)
+                            
+                            AllBanData[stdata[d].stock]['total2']=stdata[d].amount*0.0001
+                            // console.log("不同时间")
+                        }
+                    }
+                }else{
+                    for(d in stdata){
+                        if((AllBanData[stdata[d].stock]).time[(AllBanData[stdata[d].stock]).time.length-1]>(stdata[d]).time){
+                            socket.emit('msg',{'hisban':0})
+                            return
+                        }
+                    
+                        //  console.log((AllBanData[stdata[d].stock]).time)
+                        //  console.log((stdata[d]).time in (AllBanData[stdata[d].stock]).time)
+                        //监控较大变化|短线提醒
+                            if(AllBanData[stdata[d].stock].price.length<20) maxW=2000
+                            else if(AllBanData[stdata[d].stock].price.length<40) maxW=1000
+                            else maxW=500
+                            if((AllBanData[stdata[d].stock]).time.includes((stdata[d]).time)){
+                            //    console.log("分钟内")
+                                //监控最终位置
+                                if(stdata[d].volume-AllBanData[stdata[d].stock].volume[AllBanData[stdata[d].stock].price.length-1]>maxW){
+                                    console.log(stdata[d].stock,":大单买入",stdata[d].volume," ",AllBanData[stdata[d].stock].volume[AllBanData[stdata[d].stock].price.length-1])
+                                    var element = document.getElementById(stdata[d].stock);
+                                    element.style.backgroundColor='#79CDCD'
+                                    setTimeout(() => {
+                                        element.style.backgroundColor=''
+                                    }, 5000);
+
+                                }
+                                AllBanData[stdata[d].stock].price[AllBanData[stdata[d].stock].price.length-1]=stdata[d].price
+                                AllBanData[stdata[d].stock].volume[AllBanData[stdata[d].stock].price.length-1]=stdata[d].volume
+                                
+                            }else{
+                                // console.log("分钟外")
+                                if(stdata[d].volume>maxW){
+                                    console.log(stdata[d].stock,":大单买入",stdata[d].volume," ",AllBanData[stdata[d].stock].volume[AllBanData[stdata[d].stock].price.length-1])
+                                    var element = document.getElementById(stdata[d].stock);
+                                    element.style.backgroundColor='#79CDCD'
+                                    setTimeout(() => {
+                                        element.style.backgroundColor=''
+                                    }, 5000);
+
+                                }
+                                AllBanData[stdata[d].stock].time.push(stdata[d].time)
+                                AllBanData[stdata[d].stock].price.push(stdata[d].price)
+                                AllBanData[stdata[d].stock].volume.push(stdata[d].volume)
+                            }
+                            
+
+                        // )
+                        // break
+                        // console.log(stdata[d])
+                    }
+                }
+                draw()
+                // console.log(AllBanData)
+            }else if(now>=targetTime1){
+                socket.emit('msg',{'hisban':0})
+            }
+            // console.log(data)
+            
+        })
+        function draw() {
+            // console.log(data.stock.slice(0,2))
+            //const container = document.getElementById('b4');
+            // if(data.stock!="600397.SH")
+            //     return
+            for(i in AllBanData){
+                data=AllBanData[i]
+                // console.log(data.time.length)
+            var sd=document.getElementById(data.stock)
+            if(sd){
+                if(sd.parentElement.id=='b1'&&data.price[data.price.length-1]>9.5){
+                    var b12=document.getElementById('b12')
+                    b12.appendChild(sd)
+                    // console.log(b12)
+                }
+                if(sd.parentElement.id=='b12'&&data.price[data.price.length-1]<9.5){
+                    var b1=document.getElementById('b1')
+                    b1.appendChild(sd)
+                    // console.log(b12)
+                }
+                sd.setAttribute('data-hh',data.price[data.price.length-1])
+                if(!sortType){
+                    const divs=Array.from(sd.parentNode.childNodes).slice(1)
+                    divs.sort((a, b) => {
+                        return  parseInt(b.dataset.hh) - parseInt(a.dataset.hh);
+                    });
+                    
+                    divs.forEach((div, index) => {
+                        div.style.order = index;
+                    });
+                }
+                
+            }
+             // 绘制 ECharts  
+            const chartDom = document.getElementById(`${data.stock}-chart`);  
+            const myChart = echarts.init(chartDom);   
+            // 设置 ECharts 配置项  
+            // if(data.stock=="600397.SH")
+            const option = {
+                // title: {  
+                //     text: `${data.stock} 分时走势`,  
+                // },  
+                tooltip: {
+                    trigger: 'axis',  
+                },  
+                // legend: {
+                //     data: ['涨幅', '成交额']
+                // },
+                xAxis: {
+                    type: 'category',  
+                    data: data.time,  
+                    name: '时间',  
+                    axisLine:{
+                        lineStyle:{
+                            color:'#00f',
+                            width:1
+                        }
+                    },
+                    splitLine:{
+                        show:false
+                    },
+                    axisLabel:{fontSize : 12,color:"#00f"},
+                    
+                    min:-4,
+                    max:data.time.length<60?70:(data.time.length<120?130:(data.time.length<180?200:245))
+                }, 
+            
+                yAxis: [{  
+                    type: 'value',  
+                    name: '涨幅', 
+                    axisLabel:{fontSize : 12,color:"#00f"},
+                    position: 'left',
+                    splitLine:{//背景网格线
+                        show:false,
+                        // lineStyle: {
+                        //     type: 'dashed', // 设置为虚线
+                        //     color: '#ddd' // 网格线颜色
+                        // }
+                    }, 
+                    alignTicks: true,
+                    // startValue:data.preClose,
+                    // max:data.stock.slice(0,2)=='30'?data.preClose*1.21:data.preClose*1.11,
+                    // min:data.preClose*0.89
+                    max:data.stock.slice(0,2)=='30'?20.05:10.05,
+                    min:-10
+                },{
+                    type: 'value',
+                    name: '成交额',
+                    position: 'right',
+                    // alignTicks: true,
+                    max:8000,
+                    offset: -10,
+                    splitLine:{//背景网格线
+                        show:false,
+                        // lineStyle: {
+                        //     type: 'dashed', // 设置为虚线
+                        //     color: '#ddd' // 网格线颜色
+                        // }
+                    }, 
+                 
+                },
+                {
+                    name: '买',
+                    type: 'value',
+                    // max:800,
+                    alignTicks: true,
+                    // offset: -10,
+                    // inverse: true,
+                    splitLine:{//背景网格线
+                        show:false,
+                        // lineStyle: {
+                        //     type: 'dashed', // 设置为虚线
+                        //     color: '#ddd' // 网格线颜色
+                        // }
+                    }, 
+                },
+                {
+                    name: '卖',
+                    type: 'value',
+                    // offset: 10,
+                    alignTicks: true,
+                    inverse: true,
+                    splitLine:{//背景网格线
+                        show:false,
+                        // lineStyle: {
+                        //     type: 'dashed', // 设置为虚线
+                        //     color: '#ddd' // 网格线颜色
+                        // }
+                    }, 
+                },
+                // {
+                //     type:'category',
+                //     name:'买卖',
+                //     data:[7,8],
+
+                // }
+                ],  
+                series: [{
+                    name: '涨幅',  
+                    type: 'line',  
+                    data: data.price,  
+                    smooth: true, // 平滑曲线  
+                    symbol:'none',
+                    itemStyle: {  
+                        color: '#B3EE3A',
+                        width:0.5
+                    },
+                    yAxisIndex: 0,
+                    // markLine: {
+                    //     symbol:'none',
+                    //     animation: false,
+                    //     data: [
+                    //         {
+                    //             yAxis: data.preClose,// 这里指定垂直线的位置，'C' 是 xAxis 的一个数据点
+                    //             lineStyle:{
+                    //                 type :'solid'
+                    //             },
+                    //         },
+                    //         {
+                    //             yAxis:data.stock.slice(0,2)=='30'?data.preClose*1.21:data.preClose*1.11,
+                    //             lineStyle:{
+                    //                 color:'#a3cf62',
+                    //                 width:1
+                    //             },
+                    //         },
+                    //         {
+                    //             yAxis:data.preClose*0.9,
+                    //             lineStyle:{
+                    //                 type :'solid',
+                    //                 color:'#0c212b',
+                    //                 width:1
+                    //             },
+                    //         }
+                    //     ],
+                    // },    
+                    },{
+                    name: '成交额',
+                    data: data.volume,
+                    type: 'bar',
+                    yAxisIndex: 1,
+                    itemStyle:{
+                            color:'#4F4F4F',
+                            width:0.1
+                    },
+                },
+                {
+                    name: '卖',
+                    type: 'line',
+                    areaStyle: {
+                        color:'#8A2BE2'
+                    },
+                    yAxisIndex: 3,
+                    lineStyle: {
+                        width: 0
+                    },
+                    // prettier-ignore
+                    data: data.asks
+                },
+                {
+                    name: '买',
+                    type: 'line',
+                    areaStyle: {
+                        color:'#CCD700'
+                    },
+                    lineStyle: {
+                        width: 0
+                    },
+                    yAxisIndex: 2,
+                    // yAxisIndex: 1,
+                    // prettier-ignore
+                    data: data.bids
+                },
+                // {
+                //     name:'买卖',
+                //     type:'bar',
+                //     data:[5,6]
+                // }
+            ],
+                grid:{
+                    top:'4%',
+                    bottom:'15%',
+                    right:'10%',
+                    left:0,
+                    borderWidth:1,
+                    // width:'500px',
+                    // height:'400px'
+                }
+
+            };  
+            // if(data.stock=="600397.SH")
+            // 使用刚指定的配置项和数据显示图表  
+            myChart.setOption(option);   
+        }}
         function f1(){
             socket.emit('start_broadcast',{'ban':0})
         }
@@ -254,317 +759,5 @@
                 });
             }
         }
-        // 接收客户端唯一 ID  
-        socket.on('client_id', (data) => {  
-            console.log('您的客户端 ID:', data.id);  
-        });  
-        function deal(data){
-            for(d in data){
-                // if(data[d].id!="600397.SH")
-                //     continue
-                if(data[d].bans>5)
-                    container = document.getElementById('b5');
-                else
-                    container = document.getElementById(`b${data[d].bans}`);
-                let stockDiv = document.getElementById(data[d].id);
-                if (!stockDiv) {  
-                    stockDiv = document.createElement('div');  
-                    stockDiv.setAttribute('data-hh',0)
-                    stockDiv.setAttribute('data-dde',data[d].dde)
-                    stockDiv.setAttribute('data-changed',data[d].changed)
-                    stockDiv.setAttribute('data-amount',data[d].amount)
-                    stockDiv.id = data[d].id;  
-                    stockDiv.className = 'stock';
-                    stTitle=`<div ondblclick="dblClickFn('${data[d].id}')" style="cursor: pointer;z-index:999;position: relative;left:30%;color:#eee">${data[d].name}<span>${parseInt((data[d].current_price-data[d].pre_price)/data[d].pre_price*100)}</span></div>`  
-                    buyDiv=`<div style="font-size: 12px; text-align: left;right: 5px;top:5px;position: absolute;border:solid 1px #4F4F4F;width: 50px;">
-                        <div style="background-color: #6a832a;">
-                            <p>123</p><p>123</p><p>123</p>
-                            </div>
-                            <div style="background-color: #8fc83d;">
-                                <p>123</p><p>123</p><p>123</p>
-                            </div>
-                            </div>`
-                    stockDiv.innerHTML =stTitle+`<div style="font-size: 12px; text-align: left; right: 28px;top:30px;position: absolute;color: chartreuse;">${parseInt(data[d].dde/10000)}</br>${parseInt(data[d].changed)}</div> `;  
-                    stockDiv.innerHTML += `<div style="position: absolute;bottom: 45px;right: 43px;font-size: 10px;">竞:${(parseInt(data[d].amount))}</br>卖 ${parseInt(data[d].ask)}</br>买 ${parseInt(data[d].bid)}</div><div class="chart" id="${data[d].id}-chart"></div>`;  
-                    container.appendChild(stockDiv);
-                    // console.log("sdsfewf",AllBanData)
-                    if(Object.keys(AllBanData).length){
-                        AllBanData[data[d].id]['amount']=data[d].amount
-                        AllBanData[data[d].id]['ask']=data[d].ask
-                        AllBanData[data[d].id]['bid']=data[d].bid
-                    }
-                    if(((data[d].changed > 8 && data[d].dde<0) && data[d].pre_price < data[d].current_price)||
-                    data[d].changed>20 && data[d].amount>5000 && data[d].pre_price*0.93 > data[d].current_price
-                    ){
-                        console.log("超预期",data[d].name)
-                        var buyD=document.getElementById('buylist')
-                        buyD.innerHTML+=stTitle;
-                    }
-                }
-            }
-        }
-        function dblClickFn(e){
-            socket.emit('msg',{'buy':e})
-            alert('购买了',e)
-        }
-        socket.on('st_data', function(stdata) {
-            // console.log("后端数据：",stdata)
-            if(Object.keys(AllBanData).length){
-                
-                //处理tick
-                if(stdata[0].ask){
-                    // console.log(stdata[0])
-                    for(d in stdata){
-                        if((AllBanData[stdata[d].stock]).time.includes((stdata[d]).time)){
-                            // console.log("同时间")
-                            if(AllBanData[stdata[d].stock]['total2']){
-                                AllBanData[stdata[d].stock].volume[AllBanData[stdata[d].stock].price.length-1]=stdata[d].amount*0.0001-AllBanData[stdata[d].stock]['total2']
-                            }
-                            AllBanData[stdata[d].stock].price[AllBanData[stdata[d].stock].price.length-1]=stdata[d].price
-                            
-                            AllBanData[stdata[d].stock]['total1']=stdata[d].amount*0.0001
-                        }else {
-                            if(AllBanData[stdata[d].stock]['total1']){
-                                AllBanData[stdata[d].stock].volume.push(stdata[d].amount*0.0001-AllBanData[stdata[d].stock]['total1'])
-                            }
-                            AllBanData[stdata[d].stock].time.push(stdata[d].time)
-                            AllBanData[stdata[d].stock].price.push(stdata[d].price)
-                            
-                            AllBanData[stdata[d].stock]['total2']=stdata[d].amount*0.0001
-                            // console.log("不同时间")
-                        }
-                    }
-                }else
-                for(d in stdata){
-                    if((AllBanData[stdata[d].stock]).time[(AllBanData[stdata[d].stock]).time.length-1]>(stdata[d]).time){
-                        socket.emit('msg',{'hisban':0})
-                    }
-                
-                    //  console.log((AllBanData[stdata[d].stock]).time)
-                    //  console.log((stdata[d]).time in (AllBanData[stdata[d].stock]).time)
-                      //监控较大变化|短线提醒
-                        if(AllBanData[stdata[d].stock].price.length<20) maxW=2000
-                        else if(AllBanData[stdata[d].stock].price.length<40) maxW=1000
-                        else maxW=500
-                        if((AllBanData[stdata[d].stock]).time.includes((stdata[d]).time)){
-                        //    console.log("分钟内")
-                            //监控最终位置
-                            if(stdata[d].volume-AllBanData[stdata[d].stock].volume[AllBanData[stdata[d].stock].price.length-1]>maxW){
-                                console.log(stdata[d].stock,":大单买入",stdata[d].volume," ",AllBanData[stdata[d].stock].volume[AllBanData[stdata[d].stock].price.length-1])
-                                var element = document.getElementById(stdata[d].stock);
-                                element.style.backgroundColor='#79CDCD'
-                                setTimeout(() => {
-                                    element.style.backgroundColor=''
-                                }, 5000);
-
-                            }
-                            AllBanData[stdata[d].stock].price[AllBanData[stdata[d].stock].price.length-1]=stdata[d].price
-                            AllBanData[stdata[d].stock].volume[AllBanData[stdata[d].stock].price.length-1]=stdata[d].volume
-                            
-                        }else{
-                            // console.log("分钟外")
-                            if(stdata[d].volume>maxW){
-                                console.log(stdata[d].stock,":大单买入",stdata[d].volume," ",AllBanData[stdata[d].stock].volume[AllBanData[stdata[d].stock].price.length-1])
-                                var element = document.getElementById(stdata[d].stock);
-                                element.style.backgroundColor='#79CDCD'
-                                setTimeout(() => {
-                                    element.style.backgroundColor=''
-                                }, 5000);
-
-                            }
-                            AllBanData[stdata[d].stock].time.push(stdata[d].time)
-                            AllBanData[stdata[d].stock].price.push(stdata[d].price)
-                            AllBanData[stdata[d].stock].volume.push(stdata[d].volume)
-                        }
-                          
-
-                    // )
-                    // break
-                    // console.log(stdata[d])
-                }
-                // console.log(AllBanData)
-            }else{
-                socket.emit('msg',{'hisban':0})
-            }
-            // console.log(data)
-            draw()
-        })
-        function draw() {
-            // console.log(data.stock.slice(0,2))
-            //const container = document.getElementById('b4');
-            // if(data.stock!="600397.SH")
-            //     return
-            for(i in AllBanData){
-                data=AllBanData[i]
-                // console.log(data.time.length)
-            var sd=document.getElementById(data.stock)
-            if(sd){
-                if(sd.parentElement.id=='b1'&&data.price[data.price.length-1]>9.5){
-                    var b12=document.getElementById('b12')
-                    b12.appendChild(sd)
-                    // console.log(b12)
-                }
-                if(sd.parentElement.id=='b12'&&data.price[data.price.length-1]<9.5){
-                    var b1=document.getElementById('b1')
-                    b1.appendChild(sd)
-                    // console.log(b12)
-                }
-                sd.setAttribute('data-hh',data.price[data.price.length-1])
-                if(!sortType){
-                    const divs=Array.from(sd.parentNode.childNodes).slice(1)
-                    divs.sort((a, b) => {
-                        return  parseInt(b.dataset.hh) - parseInt(a.dataset.hh);
-                    });
-                    
-                    divs.forEach((div, index) => {
-                        div.style.order = index;
-                    });
-                }
-                
-            }
-             // 绘制 ECharts  
-            const chartDom = document.getElementById(`${data.stock}-chart`);  
-            const myChart = echarts.init(chartDom);   
-            // 设置 ECharts 配置项  
-            // if(data.stock=="600397.SH")
-            const option = {
-                // title: {  
-                //     text: `${data.stock} 分时走势`,  
-                // },  
-                tooltip: {  
-                    trigger: 'axis',  
-                },  
-                // legend: {
-                //     data: ['涨幅', '成交额']
-                // },
-                xAxis: {
-                    type: 'category',  
-                    data: data.time,  
-                    name: '时间 (分钟)',  
-                    axisLine:{
-                        lineStyle:{
-                            color:'#00f',
-                            width:1
-                        }
-                    },
-                    splitLine:{
-                        show:false
-                    },
-                    axisLabel:{fontSize : 12,color:"#00f"},
-                    
-                    min:-2,
-                    max:data.time.length<60?70:(data.time.length<120?130:(data.time.length<180?200:245))
-                }, 
-            
-                yAxis: [{  
-                    type: 'value',  
-                    name: '涨幅', 
-                    axisLabel:{fontSize : 12,color:"#00f"},
-                    position: 'left',
-                    splitLine:{//背景网格线
-                        show:false,
-                        // lineStyle: {
-                        //     type: 'dashed', // 设置为虚线
-                        //     color: '#ddd' // 网格线颜色
-                        // }
-                    }, 
-                    alignTicks: true,
-                    // startValue:data.preClose,
-                    // max:data.stock.slice(0,2)=='30'?data.preClose*1.21:data.preClose*1.11,
-                    // min:data.preClose*0.89
-                    max:data.stock.slice(0,2)=='30'?20.05:10.05,
-                    min:-10
-                },{
-                    type: 'value',
-                    name: '成交额',
-                    position: 'right',
-                    // alignTicks: true,
-                    max:8000,
-                    offset: -10,
-                    splitLine:{//背景网格线
-                        show:false,
-                        // lineStyle: {
-                        //     type: 'dashed', // 设置为虚线
-                        //     color: '#ddd' // 网格线颜色
-                        // }
-                    }, 
-                 
-                },
-                // {
-                //     type:'category',
-                //     name:'买卖',
-                //     data:[7,8],
-
-                // }
-                ],  
-                series: [{
-                    name: '涨幅',  
-                    type: 'line',  
-                    data: data.price,  
-                    smooth: true, // 平滑曲线  
-                    symbol:'none',
-                    itemStyle: {  
-                        color: '#B3EE3A',
-                        width:0.5
-                    },
-                    // markLine: {
-                    //     symbol:'none',
-                    //     animation: false,
-                    //     data: [
-                    //         {
-                    //             yAxis: data.preClose,// 这里指定垂直线的位置，'C' 是 xAxis 的一个数据点
-                    //             lineStyle:{
-                    //                 type :'solid'
-                    //             },
-                    //         },
-                    //         {
-                    //             yAxis:data.stock.slice(0,2)=='30'?data.preClose*1.21:data.preClose*1.11,
-                    //             lineStyle:{
-                    //                 color:'#a3cf62',
-                    //                 width:1
-                    //             },
-                    //         },
-                    //         {
-                    //             yAxis:data.preClose*0.9,
-                    //             lineStyle:{
-                    //                 type :'solid',
-                    //                 color:'#0c212b',
-                    //                 width:1
-                    //             },
-                    //         }
-                    //     ],
-                    // },    
-                    },{
-                    name: '成交额',
-                    data: data.volume,
-                    type: 'bar',
-                    yAxisIndex: 1,
-                    itemStyle:{
-                            color:'#4F4F4F',
-                            width:0.1
-                    },
-                },
-                // {
-                //     name:'买卖',
-                //     type:'bar',
-                //     data:[5,6]
-                // }
-            ],
-                grid:{
-                    top:'4%',
-                    bottom:'15%',
-                    right:'10%',
-                    left:0,
-                    borderWidth:1,
-                    // width:'500px',
-                    // height:'400px'
-                }
-
-            };  
-            // if(data.stock=="600397.SH")
-            // 使用刚指定的配置项和数据显示图表  
-            myChart.setOption(option);   
-        }}
-     
     </script>  
 </body>
