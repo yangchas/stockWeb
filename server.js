@@ -261,7 +261,8 @@ async function getRedisValue(key) {
 function sendStockAllData() {
     getRedisValue('min_dict').then(val=>{
         data=JSON.parse(val)
-        if(data){
+        // console.log(Object.keys(data).length)
+        if(Object.keys(data).length){
             var stdatas=[]
             for(d in data){
                 // console.log((JSON.parse(data[d][Object.keys(data[d])[0]])).length)
@@ -315,7 +316,8 @@ function sendStockAllData() {
  function sendStockTickData() {
     getRedisValue('tick_dict').then(val=>{
         data=JSON.parse(val)
-        if(data){
+        // console.log(Object.keys(data).length)
+        if(Object.keys(data).length){
            
             var stdatas=[]
             for(d in data){
@@ -431,9 +433,12 @@ function sendStockAllData() {
  }
  function sendStockOpendData(){
       getRedisValue('open_dict').then(val=>{
+            if(val){
                 data=JSON.parse(val) 
                 // console.log(data)
                 io.emit('msg',{'opend':data})
+            }
+
             })
  }
 // Function to send broadcast message  

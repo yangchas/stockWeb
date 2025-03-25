@@ -386,7 +386,7 @@
             // if(now<targetTime){
             //     return
             // }
-            if(Object.keys(AllBanData).length>5){
+            if(Object.keys(AllBanData).length>5 ||targetTime < now < targetTime1){
                 
                 //处理tick
                 if(stdata[0].ask){
